@@ -30,7 +30,7 @@ function App() {
   const loadResults = async () => {
     try {
       // GitHub에 저장된 JSON 파일 로드
-      const response = await fetch('/notebook/data/results.json')
+      const response = await fetch('./data/results.json')
 
       if (!response.ok) {
         throw new Error('데이터를 불러올 수 없습니다')
