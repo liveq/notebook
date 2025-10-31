@@ -1,25 +1,18 @@
 """
-번개장터 크롤러
-
-참고:
-- 번개장터는 앱 기반 서비스이며, API 접근이 제한될 수 있습니다.
-- robots.txt를 준수하며, 과도한 요청을 하지 않습니다.
-- 실제 사용 시 번개장터 정책을 확인하세요.
+번개장터 크롤러 (Playwright 기반)
 """
 import re
-import json
 from typing import List, Dict, Any
 from urllib.parse import quote
 from crawlers.base_crawler import BaseCrawler
 
 
 class BunjangCrawler(BaseCrawler):
-    """번개장터 크롤러"""
+    """번개장터 크롤러 (Playwright)"""
 
     def __init__(self):
         super().__init__("번개장터")
-        self.base_url = "https://www.bunjang.co.kr"
-        self.api_base = "https://api.bunjang.co.kr"
+        self.base_url = "https://m.bunjang.co.kr"
 
     def search(self, keywords: List[str]) -> List[Dict[str, Any]]:
         """
@@ -33,18 +26,26 @@ class BunjangCrawler(BaseCrawler):
         """
         all_results = []
 
-        for keyword in keywords:
-            try:
-                self.logger.info(f"번개장터 검색: {keyword}")
-                results = self._search_keyword(keyword)
-                all_results.extend(results)
+        # 브라우저 시작
+        self.start_browser()
 
-                if len(all_results) >= self.settings['max_results_per_site']:
-                    break
+        try:
+            for keyword in keywords[:5]:  # 처음 5개 키워드만
+                try:
+                    self.logger.info(f"번개장터 검색: {keyword}")
+                    results = self._search_keyword(keyword)
+                    all_results.extend(results)
 
-            except Exception as e:
-                self.logger.error(f"번개장터 검색 실패 [{keyword}]: {e}")
-                continue
+                    if len(all_results) >= self.settings['max_results_per_site']:
+                        break
+
+                except Exception as e:
+                    self.logger.error(f"번개장터 검색 실패 [{keyword}]: {e}")
+                    continue
+
+        finally:
+            # 브라우저 종료
+            self.close_browser()
 
         # 중복 제거
         unique_results = self._remove_duplicates(all_results)
@@ -65,54 +66,51 @@ class BunjangCrawler(BaseCrawler):
         results = []
 
         try:
-            # 번개장터 검색 URL
             search_url = f"{self.base_url}/search/products?q={quote(keyword)}"
 
-            response = self.get(search_url)
-            soup = self.parse_html(response.text)
+            self.logger.info(f"검색 URL: {search_url}")
 
-            # 검색 결과 파싱
-            # 번개장터는 동적 렌더링을 사용할 수 있어 selenium이 필요할 수 있음
-            # 여기서는 기본 HTML 파싱을 시도합니다.
+            # 페이지 이동
+            self.goto(search_url, wait_for='networkidle')
 
-            # 상품 카드 선택 (실제 클래스명은 다를 수 있음)
-            products = soup.select('div[class*="product"]')[:20]
+            # 잠시 대기 (동적 로딩)
+            self.page.wait_for_timeout(2000)
 
-            for product in products:
+            # HTML 파싱
+            html = self.get_page_content()
+            soup = self.parse_html(html)
+
+            # 검색 결과 파싱 (번개장터는 구조가 자주 변경될 수 있음)
+            items = soup.select('div[class*="ProductList"] a')
+
+            for item in items[:10]:
                 try:
-                    # 제목 추출
-                    title_elem = product.select_one('a[class*="title"], div[class*="name"]')
+                    title_elem = item.select_one('[class*="ProductCard_name"]')
+                    price_elem = item.select_one('[class*="ProductCard_price"]')
+                    href = item.get('href', '')
+
                     if not title_elem:
                         continue
 
                     title = title_elem.get_text(strip=True)
-
-                    # URL 추출
-                    link_elem = product.select_one('a')
-                    if not link_elem or not link_elem.get('href'):
-                        continue
-
-                    product_url = link_elem.get('href')
-                    if not product_url.startswith('http'):
-                        product_url = self.base_url + product_url
-
-                    # 가격 추출
-                    price_elem = product.select_one('[class*="price"]')
                     price = price_elem.get_text(strip=True) if price_elem else ""
 
-                    # 위치 추출
-                    location_elem = product.select_one('[class*="location"], [class*="region"]')
-                    location = location_elem.get_text(strip=True) if location_elem else ""
+                    # 절대 URL 생성
+                    if href.startswith('/'):
+                        url = f"https://m.bunjang.co.kr{href}"
+                    else:
+                        url = href
 
-                    # 매물 생성
-                    item = self.create_item(
+                    # 매물 정보 생성
+                    result_item = self.create_item(
                         title=title,
-                        url=product_url,
+                        url=url,
                         price=price,
-                        location=location
+                        description=title,
+                        location="번개장터"
                     )
 
-                    results.append(item)
+                    results.append(result_item)
 
                 except Exception as e:
                     self.logger.error(f"번개장터 아이템 파싱 실패: {e}")
@@ -120,56 +118,6 @@ class BunjangCrawler(BaseCrawler):
 
         except Exception as e:
             self.logger.error(f"번개장터 검색 요청 실패: {e}")
-
-        return results
-
-    def _search_via_api(self, keyword: str) -> List[Dict[str, Any]]:
-        """
-        API를 통한 검색 (실제 API 엔드포인트가 다를 수 있음)
-
-        Args:
-            keyword: 검색 키워드
-
-        Returns:
-            검색 결과 리스트
-        """
-        results = []
-
-        try:
-            # API 요청 (실제 엔드포인트는 다를 수 있음)
-            api_url = f"{self.api_base}/search/products"
-            params = {
-                "order": "date",
-                "q": keyword,
-                "page": 0,
-                "req_ref": "search"
-            }
-
-            response = self.get(api_url, params=params)
-            data = response.json()
-
-            # 응답 파싱
-            products = data.get("list", [])
-
-            for product in products[:20]:
-                try:
-                    item = self.create_item(
-                        title=product.get("name", ""),
-                        url=f"{self.base_url}/products/{product.get('pid')}",
-                        description=product.get("description", ""),
-                        price=str(product.get("price", "")),
-                        location=product.get("location", ""),
-                        raw_data=product
-                    )
-
-                    results.append(item)
-
-                except Exception as e:
-                    self.logger.error(f"번개장터 API 응답 파싱 실패: {e}")
-                    continue
-
-        except Exception as e:
-            self.logger.error(f"번개장터 API 요청 실패: {e}")
 
         return results
 
@@ -185,29 +133,3 @@ class BunjangCrawler(BaseCrawler):
                 unique_items.append(item)
 
         return unique_items
-
-    def get_product_detail(self, url: str) -> Dict[str, Any]:
-        """
-        상품 상세 정보 가져오기
-
-        Args:
-            url: 상품 URL
-
-        Returns:
-            상세 정보 딕셔너리
-        """
-        try:
-            response = self.get(url)
-            soup = self.parse_html(response.text)
-
-            # 상품 설명 추출
-            desc_elem = soup.select_one('[class*="description"], [class*="content"]')
-            description = desc_elem.get_text(strip=True) if desc_elem else ""
-
-            return {
-                "description": description
-            }
-
-        except Exception as e:
-            self.logger.error(f"상세 정보 추출 실패 [{url}]: {e}")
-            return {}

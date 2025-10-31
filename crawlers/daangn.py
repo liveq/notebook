@@ -1,10 +1,5 @@
 """
-당근마켓 크롤러
-
-참고:
-- 당근마켓은 지역 기반 서비스로, 특정 지역을 선택해야 합니다.
-- robots.txt를 준수하며, 과도한 요청을 하지 않습니다.
-- 실제 사용 시 당근마켓 정책을 확인하세요.
+당근마켓 크롤러 (Playwright 기반)
 """
 import re
 from typing import List, Dict, Any
@@ -13,16 +8,11 @@ from crawlers.base_crawler import BaseCrawler
 
 
 class DaangnCrawler(BaseCrawler):
-    """당근마켓 크롤러"""
+    """당근마켓 크롤러 (Playwright)"""
 
-    def __init__(self, region: str = "전국"):
-        """
-        Args:
-            region: 검색할 지역 (예: "서울", "경기")
-        """
+    def __init__(self):
         super().__init__("당근마켓")
         self.base_url = "https://www.daangn.com"
-        self.region = region
 
     def search(self, keywords: List[str]) -> List[Dict[str, Any]]:
         """
@@ -36,18 +26,26 @@ class DaangnCrawler(BaseCrawler):
         """
         all_results = []
 
-        for keyword in keywords:
-            try:
-                self.logger.info(f"당근마켓 검색: {keyword}")
-                results = self._search_keyword(keyword)
-                all_results.extend(results)
+        # 브라우저 시작
+        self.start_browser()
 
-                if len(all_results) >= self.settings['max_results_per_site']:
-                    break
+        try:
+            for keyword in keywords[:5]:  # 처음 5개 키워드만
+                try:
+                    self.logger.info(f"당근마켓 검색: {keyword}")
+                    results = self._search_keyword(keyword)
+                    all_results.extend(results)
 
-            except Exception as e:
-                self.logger.error(f"당근마켓 검색 실패 [{keyword}]: {e}")
-                continue
+                    if len(all_results) >= self.settings['max_results_per_site']:
+                        break
+
+                except Exception as e:
+                    self.logger.error(f"당근마켓 검색 실패 [{keyword}]: {e}")
+                    continue
+
+        finally:
+            # 브라우저 종료
+            self.close_browser()
 
         # 중복 제거
         unique_results = self._remove_duplicates(all_results)
@@ -68,53 +66,56 @@ class DaangnCrawler(BaseCrawler):
         results = []
 
         try:
-            # 당근마켓 검색 URL
             search_url = f"{self.base_url}/search/{quote(keyword)}"
 
-            response = self.get(search_url)
-            soup = self.parse_html(response.text)
+            self.logger.info(f"검색 URL: {search_url}")
+
+            # 페이지 이동
+            self.goto(search_url, wait_for='networkidle')
+
+            # 잠시 대기 (동적 로딩)
+            self.page.wait_for_timeout(2000)
+
+            # HTML 파싱
+            html = self.get_page_content()
+            soup = self.parse_html(html)
 
             # 검색 결과 파싱
-            # 당근마켓도 동적 렌더링을 사용할 수 있습니다.
+            articles = soup.select('article[class*="card"]')
 
-            # 상품 카드 선택 (실제 클래스명은 다를 수 있음)
-            articles = soup.select('article[class*="article"], div[class*="article-card"]')[:20]
-
-            for article in articles:
+            for article in articles[:10]:
                 try:
-                    # 제목 추출
-                    title_elem = article.select_one('h2, [class*="title"]')
-                    if not title_elem:
+                    title_elem = article.select_one('[class*="title"]')
+                    price_elem = article.select_one('[class*="price"]')
+                    link_elem = article.find('a')
+
+                    if not title_elem or not link_elem:
                         continue
 
                     title = title_elem.get_text(strip=True)
-
-                    # URL 추출
-                    link_elem = article.select_one('a')
-                    if not link_elem or not link_elem.get('href'):
-                        continue
-
-                    article_url = link_elem.get('href')
-                    if not article_url.startswith('http'):
-                        article_url = self.base_url + article_url
-
-                    # 가격 추출
-                    price_elem = article.select_one('[class*="price"]')
                     price = price_elem.get_text(strip=True) if price_elem else ""
+                    href = link_elem.get('href', '')
+
+                    # 절대 URL 생성
+                    if href.startswith('/'):
+                        url = f"{self.base_url}{href}"
+                    else:
+                        url = href
 
                     # 위치 추출
-                    location_elem = article.select_one('[class*="region"], [class*="location"]')
+                    location_elem = article.select_one('[class*="region"]')
                     location = location_elem.get_text(strip=True) if location_elem else ""
 
-                    # 매물 생성
-                    item = self.create_item(
+                    # 매물 정보 생성
+                    result_item = self.create_item(
                         title=title,
-                        url=article_url,
+                        url=url,
                         price=price,
-                        location=location
+                        location=location,
+                        description=title
                     )
 
-                    results.append(item)
+                    results.append(result_item)
 
                 except Exception as e:
                     self.logger.error(f"당근마켓 아이템 파싱 실패: {e}")
@@ -137,39 +138,3 @@ class DaangnCrawler(BaseCrawler):
                 unique_items.append(item)
 
         return unique_items
-
-    def get_article_detail(self, url: str) -> Dict[str, Any]:
-        """
-        게시글 상세 정보 가져오기
-
-        Args:
-            url: 게시글 URL
-
-        Returns:
-            상세 정보 딕셔너리
-        """
-        try:
-            response = self.get(url)
-            soup = self.parse_html(response.text)
-
-            # 상품 설명 추출
-            desc_elem = soup.select_one('[id*="article-description"], [class*="content"]')
-            description = desc_elem.get_text(strip=True) if desc_elem else ""
-
-            # 가격 추출
-            price_elem = soup.select_one('[id*="article-price"], [class*="price-text"]')
-            price = price_elem.get_text(strip=True) if price_elem else ""
-
-            # 위치 추출
-            location_elem = soup.select_one('[id*="article-region"], [class*="region-name"]')
-            location = location_elem.get_text(strip=True) if location_elem else ""
-
-            return {
-                "description": description,
-                "price": price,
-                "location": location
-            }
-
-        except Exception as e:
-            self.logger.error(f"상세 정보 추출 실패 [{url}]: {e}")
-            return {}

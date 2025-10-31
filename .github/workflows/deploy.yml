@@ -31,6 +31,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Playwright 브라우저 설치
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
       - name: 크롤링 실행
         run: |
           echo "크롤링 시작..."
