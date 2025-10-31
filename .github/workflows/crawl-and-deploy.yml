@@ -1,0 +1,114 @@
+name: 크롤링 & 배포
+
+# 매일 오전 9시 자동 실행 + 수동 실행 가능
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 UTC 00:00 (한국시간 09:00)
+  workflow_dispatch:  # 수동 실행 가능
+  push:
+    branches:
+      - claude/used-notebook-lte-crawler-011CUeJBMB3N9z5bCYmQa95g
+      - main
+
+# 권한 설정
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  # Job 1: 크롤링 실행
+  crawl:
+    name: 중고 매물 크롤링
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Python 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 크롤링 실행
+        run: |
+          echo "🔍 크롤링 시작..."
+          python search_notebook.py
+          echo "✅ 크롤링 완료!"
+
+      - name: 결과 파일 확인
+        run: |
+          if [ -f "data/results.json" ]; then
+            echo "✅ results.json 생성 완료"
+            echo "파일 크기: $(du -h data/results.json | cut -f1)"
+            echo "매물 수: $(cat data/results.json | grep -o '"url"' | wc -l)"
+          else
+            echo "⚠️ results.json 파일이 없습니다"
+            echo "{\"results\": [], \"stats\": {\"total_count\": 0, \"new_count\": 0}}" > data/results.json
+          fi
+
+      - name: 크롤링 결과 업로드 (아티팩트)
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-results
+          path: data/results.json
+
+      - name: 결과를 저장소에 커밋
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add data/results.json
+          git diff --cached --quiet || git commit -m "자동 업데이트: 크롤링 결과 $(date +'%Y-%m-%d %H:%M')"
+          git push || echo "변경사항 없음"
+
+  # Job 2: React 앱 빌드 & 배포
+  build-and-deploy:
+    name: React 앱 빌드 및 배포
+    needs: crawl
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: 최신 크롤링 결과 가져오기
+        run: |
+          git pull origin ${{ github.ref_name }}
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 의존성 설치
+        run: npm ci || npm install
+
+      - name: React 앱 빌드
+        run: npm run build
+
+      - name: 빌드 결과에 데이터 복사
+        run: |
+          mkdir -p dist/data
+          cp data/results.json dist/data/
+
+      - name: GitHub Pages에 배포
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+
+      - name: 배포 완료 알림
+        run: |
+          echo "✅ 배포 완료!"
+          echo "URL: https://${{ github.repository_owner }}.github.io/notebook/"
