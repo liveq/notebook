@@ -31,8 +31,8 @@ venv.bak/
 data/*.json
 data/*.log
 
-# 결과 파일
-results.html
+# 결과 파일 (루트 디렉토리의 출력 파일만)
+/results.html
 
 # IDE
 .vscode/
