@@ -4,9 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -19,6 +17,13 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Node.js / React
+node_modules/
+dist/
+build/
+.vite/
+*.local
 
 # 가상환경
 venv/
