@@ -1,26 +1,25 @@
 """
-중고나라 크롤러 (Playwright 기반)
+중고나라 크롤러 (네이버 통합 검색 기반)
 
-참고:
-- 중고나라는 네이버 카페로 운영되며, 로그인이 필요할 수 있습니다.
-- robots.txt를 준수하며, 과도한 요청을 하지 않습니다.
+네이버 통합 검색에서 중고나라 관련 결과를 수집합니다.
+직접 카페 접근 대신 네이버 검색 결과를 활용하여 로그인 없이 사용 가능합니다.
 """
 import re
 from typing import List, Dict, Any
-from urllib.parse import urljoin, quote
+from urllib.parse import quote
 from crawlers.base_crawler import BaseCrawler
 
 
 class JoonggonaraCrawler(BaseCrawler):
-    """중고나라 크롤러 (Playwright)"""
+    """중고나라 크롤러 (네이버 통합 검색 기반)"""
 
     def __init__(self):
         super().__init__("중고나라")
-        self.base_url = "https://cafe.naver.com/joonggonara"
+        self.base_url = "https://search.naver.com"
 
     def search(self, keywords: List[str]) -> List[Dict[str, Any]]:
         """
-        중고나라에서 키워드 검색
+        네이버 통합 검색에서 중고나라 관련 결과 검색
 
         Args:
             keywords: 검색 키워드 리스트
@@ -34,7 +33,8 @@ class JoonggonaraCrawler(BaseCrawler):
         self.start_browser()
 
         try:
-            for keyword in keywords:
+            # 키워드 수 제한 (너무 많으면 느림)
+            for keyword in keywords[:10]:
                 try:
                     self.logger.info(f"중고나라 검색: {keyword}")
                     results = self._search_keyword(keyword)
@@ -59,7 +59,7 @@ class JoonggonaraCrawler(BaseCrawler):
 
     def _search_keyword(self, keyword: str) -> List[Dict[str, Any]]:
         """
-        단일 키워드 검색
+        단일 키워드로 네이버 통합 검색
 
         Args:
             keyword: 검색 키워드
@@ -70,40 +70,55 @@ class JoonggonaraCrawler(BaseCrawler):
         results = []
 
         try:
-            # 네이버 검색 사용 (중고나라 카페 내 검색)
-            search_url = f"https://search.naver.com/search.naver?where=article&query=중고나라+{quote(keyword)}"
+            # 네이버 통합 검색: "중고나라 + 키워드"
+            search_query = f"중고나라 {keyword}"
+            search_url = f"{self.base_url}/search.naver?where=article&query={quote(search_query)}"
 
             self.logger.info(f"검색 URL: {search_url}")
 
             # 페이지 이동
             self.goto(search_url, wait_for='networkidle')
 
+            # 잠시 대기
+            self.page.wait_for_timeout(1000)
+
             # HTML 파싱
             html = self.get_page_content()
             soup = self.parse_html(html)
 
-            # 검색 결과 파싱
+            # 검색 결과 추출
+            # 네이버 카페 검색 결과 선택자
             articles = soup.select('.api_subject_bx')
 
-            for article in articles[:10]:  # 상위 10개만
+            for article in articles[:15]:  # 상위 15개
                 try:
-                    title_elem = article.select_one('.api_txt_lines.total_tit')
-                    link_elem = article.find('a')
-
-                    if not title_elem or not link_elem:
+                    # 제목 추출
+                    title_elem = article.select_one('.api_txt_lines')
+                    if not title_elem:
                         continue
 
                     title = title_elem.get_text(strip=True)
-                    href = link_elem.get('href', '')
 
-                    if not href or '중고나라' not in href:
+                    # URL 추출
+                    link_elem = article.find('a')
+                    if not link_elem:
                         continue
 
-                    # 매물 정보 추출
+                    href = link_elem.get('href', '')
+
+                    # 중고나라 링크만 필터링
+                    if not href or 'joonggonara' not in href:
+                        continue
+
+                    # 설명 추출 (있으면)
+                    desc_elem = article.select_one('.dsc_txt_wrap')
+                    description = desc_elem.get_text(strip=True) if desc_elem else title
+
+                    # 매물 정보 생성
                     item = self.create_item(
                         title=title,
                         url=href,
-                        description=title,
+                        description=description,
                         location="중고나라"
                     )
 
