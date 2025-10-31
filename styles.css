@@ -514,6 +514,12 @@ td {
     white-space: nowrap;
 }
 
+.timestamp-cell {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
 .link-btn {
     display: inline-block;
     padding: 6px 12px;

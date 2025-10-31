@@ -146,6 +146,7 @@ function renderResults() {
                 <td>${formatDate(item.date)}</td>
                 <td><span class="condition-badge ${conditionsClass}">${conditionsText}</span></td>
                 <td><a href="${item.url}" target="_blank" class="link-btn">보기</a></td>
+                <td class="timestamp-cell">${formatTimestamp(item.timestamp)}</td>
             </tr>
         `;
     }).join('');
@@ -226,6 +227,20 @@ function formatDate(dateInput) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+// 수집 시간 포맷 (연-월-일 시:분)
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '-';
+    const date = new Date(timestamp);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 // HTML 이스케이프
