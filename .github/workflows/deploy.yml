@@ -1,7 +1,9 @@
 name: 크롤링 & 배포
 
 on:
-  workflow_dispatch:  # 수동 실행만 가능
+  workflow_dispatch:  # 수동 실행
+  push:
+    branches: [ claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6 ]
 
 permissions:
   contents: write
