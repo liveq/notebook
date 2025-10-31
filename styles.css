@@ -1,0 +1,363 @@
+/* CSS Variables - 화이트골드 컬러 스킴 */
+:root {
+    --bg-primary: #fafaf8;
+    --bg-card: #ffffff;
+    --color-gold: #c9b896;
+    --color-gold-dark: #8a7a5f;
+    --color-text: #0a0a0a;
+    --color-text-secondary: #2a2a2a;
+    --border-color: #e8dcc8;
+    --success-color: #4caf50;
+    --error-color: #f44336;
+    --neutral-color: #9e9e9e;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Reset & Base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--color-text);
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding: 24px 0;
+}
+
+header h1 {
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    font-size: 16px;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+/* Card */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+}
+
+.card h2 {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 12px;
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+}
+
+/* Input & Select */
+input[type="text"],
+select,
+textarea {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-card);
+    color: var(--color-text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--color-gold);
+    box-shadow: 0 0 0 3px rgba(201, 184, 150, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Check Status */
+.check-status {
+    margin: 24px 0;
+    padding: 20px;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.checks-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.check-icon {
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.check-item.pass .check-icon {
+    color: var(--success-color);
+}
+
+.check-item.fail .check-icon {
+    color: var(--error-color);
+}
+
+.check-item.unknown .check-icon {
+    color: var(--neutral-color);
+}
+
+.check-label {
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+/* Buttons */
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    font-family: inherit;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    background-color: var(--color-gold);
+    color: var(--color-text);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-gold-dark);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-primary);
+}
+
+.btn-delete {
+    background-color: transparent;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.btn-delete:hover {
+    background-color: var(--error-color);
+    color: white;
+}
+
+/* Table */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+thead {
+    background-color: var(--bg-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+tbody tr:nth-child(even) {
+    background-color: var(--bg-primary);
+}
+
+tbody tr:hover {
+    background-color: rgba(201, 184, 150, 0.05);
+}
+
+td {
+    padding: 12px;
+    color: var(--color-text);
+}
+
+.empty-row td {
+    text-align: center;
+    color: var(--neutral-color);
+    padding: 32px;
+}
+
+.check-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.check-badge.all-pass {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--success-color);
+}
+
+.check-badge.partial {
+    background-color: rgba(255, 152, 0, 0.1);
+    color: #ff9800;
+}
+
+.check-badge.fail {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--error-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    header h1 {
+        font-size: 24px;
+    }
+
+    .card {
+        padding: 16px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    /* Mobile table scroll */
+    .table-wrapper {
+        margin: 0 -16px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+
+    /* Hide some columns on mobile */
+    th:nth-child(3),
+    td:nth-child(3),
+    th:nth-child(4),
+    td:nth-child(4) {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .checks-container {
+        flex-direction: column;
+    }
+
+    .check-item {
+        width: 100%;
+    }
+}

@@ -1,106 +1,37 @@
-name: 자동 배포 (Render)
+name: Deploy to GitHub Pages
 
-# 트리거: 특정 브랜치에 푸시할 때
 on:
   push:
-    branches:
-      - claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [ main, claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6 ]
+  workflow_dispatch:
 
-# 환경 변수
-env:
-  PYTHON_VERSION: '3.11'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  # Job 1: 테스트 및 검증
-  test:
-    name: 테스트 및 코드 검증
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-
     steps:
-      - name: 코드 체크아웃
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Python 설정
-        uses: actions/setup-python@v5
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          path: '.'
 
-      - name: 의존성 설치
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest flake8
-
-      - name: Python 문법 체크
-        run: |
-          # Python 파일 문법 오류 체크
-          python -m py_compile app.py
-          python -m py_compile config.py
-          python -m py_compile crawlers/*.py
-          python -m py_compile utils/*.py
-
-      - name: 코드 스타일 체크 (선택사항)
-        continue-on-error: true
-        run: |
-          # flake8으로 코드 스타일 체크 (경고만)
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
-      - name: 테스트 실행 (선택사항)
-        continue-on-error: true
-        run: |
-          # 테스트 파일이 있으면 실행
-          if [ -d "tests" ]; then
-            pytest tests/
-          else
-            echo "테스트 파일 없음 - 건너뜀"
-          fi
-
-  # Job 2: Render 배포 트리거
-  deploy:
-    name: Render 배포 알림
-    needs: test  # 테스트 통과 후에만 실행
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'  # Push 이벤트에만 배포
-
-    steps:
-      - name: 배포 알림
-        run: |
-          echo "🚀 배포 준비 완료!"
-          echo "브랜치: ${{ github.ref_name }}"
-          echo "커밋: ${{ github.sha }}"
-          echo ""
-          echo "Render가 자동으로 배포를 시작합니다..."
-          echo "Render 대시보드에서 배포 상태를 확인하세요:"
-          echo "https://dashboard.render.com"
-
-      - name: Render Deploy Hook 호출 (선택사항)
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
-        run: |
-          # Render Deploy Hook이 설정되어 있으면 수동으로 배포 트리거
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-          echo "✅ Render 배포가 트리거되었습니다!"
-
-  # Job 3: 배포 완료 알림
-  notify:
-    name: 배포 상태 알림
-    needs: deploy
-    runs-on: ubuntu-latest
-    if: always()  # 성공/실패 관계없이 실행
-
-    steps:
-      - name: 성공 알림
-        if: success()
-        run: |
-          echo "✅ 배포가 성공적으로 완료되었습니다!"
-          echo "앱 URL: https://your-app-name.onrender.com"
-
-      - name: 실패 알림
-        if: failure()
-        run: |
-          echo "❌ 배포 중 오류가 발생했습니다."
-          echo "GitHub Actions 로그를 확인하세요."
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
