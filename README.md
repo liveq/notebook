@@ -1,6 +1,18 @@
 # 중고 노트북 LTE 매물 자동 검색 웹 서비스
 
+![Deploy](https://github.com/liveq/notebook/actions/workflows/deploy.yml/badge.svg)
+![CI](https://github.com/liveq/notebook/actions/workflows/ci.yml/badge.svg)
+
 매일 중고나라, 번개장터, 당근마켓에서 LTE가 탑재된 2-in-1 노트북을 자동으로 검색하고, 조건에 맞는 매물만 필터링하여 **웹 브라우저(모바일/데스크탑)**에서 확인할 수 있는 웹 서비스입니다.
+
+## 🚀 빠른 시작
+
+**배포된 서비스 사용:**
+```
+https://your-app-name.onrender.com
+```
+
+**GitHub에 푸시하면 자동 배포됩니다!**
 
 ## 주요 기능
 

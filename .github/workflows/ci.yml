@@ -1,0 +1,65 @@
+name: CI - 코드 검증
+
+# 모든 브랜치의 push와 PR에 대해 실행
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  lint-and-test:
+    name: 코드 검증
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python ${{ matrix.python-version }} 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Python 파일 문법 검증
+        run: |
+          echo "🔍 Python 파일 문법 검증 중..."
+          python -m py_compile app.py
+          python -m py_compile config.py
+          python -m compileall crawlers/
+          python -m compileall utils/
+          echo "✅ 문법 검증 완료!"
+
+      - name: 프로젝트 구조 확인
+        run: |
+          echo "📁 프로젝트 구조:"
+          ls -la
+          echo ""
+          echo "📄 주요 파일 확인:"
+          [ -f app.py ] && echo "✅ app.py" || echo "❌ app.py 없음"
+          [ -f config.py ] && echo "✅ config.py" || echo "❌ config.py 없음"
+          [ -f requirements.txt ] && echo "✅ requirements.txt" || echo "❌ requirements.txt 없음"
+          [ -f Procfile ] && echo "✅ Procfile" || echo "❌ Procfile 없음"
+          [ -d templates ] && echo "✅ templates/" || echo "❌ templates/ 없음"
+          [ -d static ] && echo "✅ static/" || echo "❌ static/ 없음"
+          [ -d crawlers ] && echo "✅ crawlers/" || echo "❌ crawlers/ 없음"
+          [ -d utils ] && echo "✅ utils/" || echo "❌ utils/ 없음"
+
+      - name: Flask 앱 실행 테스트
+        run: |
+          echo "🧪 Flask 앱 import 테스트..."
+          python -c "from app import app; print('✅ Flask 앱 로드 성공!')"
+
+      - name: 검증 완료
+        run: |
+          echo "🎉 모든 검증이 완료되었습니다!"
