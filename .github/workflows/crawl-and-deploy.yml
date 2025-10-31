@@ -7,7 +7,7 @@ on:
   workflow_dispatch:  # 수동 실행 가능
   push:
     branches:
-      - claude/used-notebook-lte-crawler-011CUeJBMB3N9z5bCYmQa95g
+      - claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6
       - main
 
 # 권한 설정
