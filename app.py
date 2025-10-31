@@ -209,7 +209,14 @@ def health():
 
 
 if __name__ == '__main__':
-    print("""
+    import os
+
+    # 환경 변수에서 설정 읽기
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+
+    if debug:
+        print("""
     ╔══════════════════════════════════════════════════════════╗
     ║                                                          ║
     ║       중고 노트북 LTE 매물 검색 웹 서비스               ║
@@ -222,7 +229,7 @@ if __name__ == '__main__':
     ║  같은 WiFi에 연결 후 컴퓨터의 IP:5000 접속              ║
     ║                                                          ║
     ╚══════════════════════════════════════════════════════════╝
-    """)
+        """)
 
     # 0.0.0.0으로 바인딩하여 외부 접속 허용
-    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=port, debug=debug, threaded=True)
