@@ -12,3 +12,5 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+__pycache__/
+*.pyc
