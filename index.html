@@ -3,145 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>중고 노트북 매물 체크</title>
+    <title>중고 노트북 LTE 매물 검색</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>중고 노트북 매물 체크</h1>
-            <p class="subtitle">조건을 만족하는 매물인지 확인하세요</p>
+            <h1>중고 노트북 LTE 매물 검색</h1>
+            <p class="subtitle">조건에 맞는 중고 매물을 자동으로 검색합니다</p>
         </header>
 
-        <div class="card">
-            <h2>매물 정보 입력</h2>
-
-            <form id="notebookForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="manufacturer">제조사</label>
-                        <input type="text" id="manufacturer" placeholder="예: Lenovo">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="model">모델명</label>
-                        <input type="text" id="model" placeholder="예: ThinkPad X1 Yoga">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="cpu">CPU</label>
-                        <input type="text" id="cpu" placeholder="예: i5-10210U">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="ram">RAM</label>
-                        <input type="text" id="ram" placeholder="예: 16GB">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="lte">LTE 지원</label>
-                        <input type="text" id="lte" placeholder="LTE/WWAN/5G">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="rotate360">360도 회전</label>
-                        <input type="text" id="rotate360" placeholder="2-in-1/컨버터블">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="touch">터치 패널</label>
-                        <input type="text" id="touch" placeholder="터치스크린">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="thunderbolt">썬더볼트</label>
-                        <input type="text" id="thunderbolt" placeholder="예: Thunderbolt 3">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="price">가격</label>
-                        <input type="text" id="price" placeholder="예: 850,000원">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="condition">상태</label>
-                        <select id="condition">
-                            <option value="상">상</option>
-                            <option value="중">중</option>
-                            <option value="하">하</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="memo">메모</label>
-                        <textarea id="memo" rows="3" placeholder="추가 메모 입력"></textarea>
-                    </div>
+        <div class="card search-info">
+            <h2>검색 조건</h2>
+            <div class="conditions-grid">
+                <div class="condition-item">
+                    <strong>CPU</strong>
+                    <span>Intel i5 8세대 이상</span>
                 </div>
-
-                <div class="check-status">
-                    <h3>조건 충족 상태</h3>
-                    <div class="checks-container">
-                        <div class="check-item" id="check-cpu">
-                            <span class="check-icon">?</span>
-                            <span class="check-label">CPU (i5 8세대+)</span>
-                        </div>
-                        <div class="check-item" id="check-ram">
-                            <span class="check-icon">?</span>
-                            <span class="check-label">RAM (16GB+)</span>
-                        </div>
-                        <div class="check-item" id="check-lte">
-                            <span class="check-icon">?</span>
-                            <span class="check-label">LTE/WWAN/5G</span>
-                        </div>
-                        <div class="check-item" id="check-rotate360">
-                            <span class="check-icon">?</span>
-                            <span class="check-label">360도 회전</span>
-                        </div>
-                        <div class="check-item" id="check-touch">
-                            <span class="check-icon">?</span>
-                            <span class="check-label">터치 패널</span>
-                        </div>
-                        <div class="check-item" id="check-thunderbolt">
-                            <span class="check-icon">?</span>
-                            <span class="check-label">썬더볼트 3+</span>
-                        </div>
-                    </div>
+                <div class="condition-item">
+                    <strong>RAM</strong>
+                    <span>16GB 이상</span>
                 </div>
-
-                <div class="button-group">
-                    <button type="button" id="addBtn" class="btn btn-primary">추가</button>
-                    <button type="button" id="resetBtn" class="btn btn-secondary">초기화</button>
-                    <button type="button" id="saveBtn" class="btn btn-secondary">JSON 저장</button>
-                    <label for="loadFile" class="btn btn-secondary">
-                        JSON 불러오기
-                        <input type="file" id="loadFile" accept=".json" style="display: none;">
-                    </label>
+                <div class="condition-item">
+                    <strong>LTE</strong>
+                    <span>LTE/WWAN/5G 지원</span>
                 </div>
-            </form>
+                <div class="condition-item">
+                    <strong>360도 회전</strong>
+                    <span>2-in-1 컨버터블</span>
+                </div>
+                <div class="condition-item">
+                    <strong>터치 패널</strong>
+                    <span>터치스크린 필수</span>
+                </div>
+                <div class="condition-item">
+                    <strong>썬더볼트</strong>
+                    <span>Thunderbolt 3 이상</span>
+                </div>
+            </div>
         </div>
 
         <div class="card">
-            <h2>매물 리스트</h2>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-label">마지막 업데이트</span>
+                    <span class="stat-value" id="lastUpdate">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">전체 매물</span>
+                    <span class="stat-value" id="totalCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">신규 매물</span>
+                    <span class="stat-value highlight" id="newCount">0</span>
+                </div>
+            </div>
+
+            <button id="refreshBtn" class="btn btn-primary">최신 결과 보기</button>
+        </div>
+
+        <div class="card">
+            <h2>검색 결과</h2>
+
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all">전체</button>
+                    <button class="filter-btn" data-filter="new">신규만</button>
+                </div>
+                <div class="sort-group">
+                    <label>정렬:</label>
+                    <select id="sortSelect">
+                        <option value="price-asc">가격 낮은순</option>
+                        <option value="price-desc">가격 높은순</option>
+                        <option value="latest">최신순</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="table-wrapper">
-                <table id="notebookTable">
+                <table id="resultsTable">
                     <thead>
                         <tr>
-                            <th>제조사</th>
-                            <th>모델명</th>
-                            <th>CPU</th>
-                            <th>RAM</th>
+                            <th>플랫폼</th>
+                            <th>제목</th>
                             <th>가격</th>
-                            <th>상태</th>
-                            <th>조건 충족</th>
-                            <th>삭제</th>
+                            <th>위치</th>
+                            <th>등록일</th>
+                            <th>조건</th>
+                            <th>링크</th>
                         </tr>
                     </thead>
-                    <tbody id="notebookList">
-                        <tr class="empty-row">
-                            <td colspan="8">매물이 없습니다. 위 폼에서 매물을 추가하세요.</td>
+                    <tbody id="resultsBody">
+                        <tr class="loading-row">
+                            <td colspan="7">데이터를 불러오는 중...</td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <div id="noResults" class="no-results" style="display: none;">
+                <p>검색 결과가 없습니다.</p>
+                <p class="hint">GitHub Actions에서 자동 크롤링이 실행되면 결과가 표시됩니다.</p>
             </div>
         </div>
     </div>

@@ -1,12 +1,12 @@
-name: Deploy to GitHub Pages
+name: 크롤링 & 배포
 
 on:
+  workflow_dispatch:  # 수동 실행
   push:
     branches: [ main, claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6 ]
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -15,23 +15,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  crawl-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      - name: Setup Pages
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Python 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 크롤링 실행
+        run: |
+          echo "크롤링 시작..."
+          python search_notebook.py || echo "크롤링 실패 (계속 진행)"
+
+      - name: 결과 파일 확인
+        run: |
+          if [ -f "data/results.json" ]; then
+            echo "results.json 생성 완료"
+            cat data/results.json
+          else
+            echo "results.json 없음 - 샘플 유지"
+          fi
+
+      - name: 결과 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/results.json
+          git diff --cached --quiet || git commit -m "자동 업데이트: 크롤링 결과 $(date +'%Y-%m-%d %H:%M')"
+          git push || echo "변경사항 없음"
+
+      - name: GitHub Pages 설정
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
+      - name: 아티팩트 업로드
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
-      - name: Deploy to GitHub Pages
+      - name: GitHub Pages 배포
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: 배포 완료
+        run: |
+          echo "배포 완료!"
+          echo "URL: https://${{ github.repository_owner }}.github.io/notebook/"

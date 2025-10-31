@@ -1,0 +1,39 @@
+{
+  "results": [
+    {
+      "title": "HP EliteBook x360 1030 G4 LTE i5-8265U 16GB",
+      "price": "450000",
+      "url": "https://example.com/sample1",
+      "source": "중고나라",
+      "date": "2024-10-30",
+      "location": "서울 강남구",
+      "description": "HP EliteBook x360 1030 G4, Intel i5-8265U, 16GB RAM, LTE WWAN 지원, 360도 회전, 터치스크린, Thunderbolt 3",
+      "specs": {
+        "cpu": "i5-8265U",
+        "ram": "16GB",
+        "lte": true
+      },
+      "is_new": true
+    },
+    {
+      "title": "레노버 ThinkPad X1 Yoga Gen 5 i7-10610U LTE",
+      "price": "580000",
+      "url": "https://example.com/sample2",
+      "source": "번개장터",
+      "date": "2024-10-29",
+      "location": "경기 성남시",
+      "description": "ThinkPad X1 Yoga 5세대 i7-10610U 16GB RAM LTE 모듈 포함 2-in-1 터치 썬더볼트3",
+      "specs": {
+        "cpu": "i7-10610U",
+        "ram": "16GB",
+        "lte": true
+      },
+      "is_new": false
+    }
+  ],
+  "stats": {
+    "total_count": 2,
+    "new_count": 1,
+    "last_updated": "2024-10-31T04:00:00Z"
+  }
+}

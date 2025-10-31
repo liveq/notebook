@@ -13,8 +13,9 @@ SEARCH_CONDITIONS = {
 
     # CPU 조건
     "cpu_generations": {
-        "i5": [7, 8, 9, 10, 11, 12, 13],  # i5 7세대 이상
-        "i7": [7, 8, 9, 10, 11, 12, 13],  # i7 7세대 이상
+        "i5": [8, 9, 10, 11, 12, 13],  # i5 8세대 이상
+        "i7": [8, 9, 10, 11, 12, 13],  # i7 8세대 이상
+        "i9": [8, 9, 10, 11, 12, 13],  # i9 8세대 이상
     },
 
     # 필수 키워드 (하나 이상 포함되어야 함)
@@ -59,17 +60,36 @@ TARGET_MODELS = [
     "latitude 7400 2-in-1",
 ]
 
-# 검색 키워드
+# 검색 키워드 (다양한 키워드 조합)
 SEARCH_KEYWORDS = [
     "노트북 lte",
+    "노트북 wwan",
+    "노트북 5g",
     "2in1 lte",
+    "2-in-1 lte",
     "x360 lte",
+    "x360 wwan",
     "convertible lte",
+    "컨버터블 lte",
     "yoga lte",
-    "wwan",
-    "elitebook x360 lte",
-    "x1 yoga lte",
-    "latitude 2-in-1 lte",
+    "yoga wwan",
+    "wwan 노트북",
+    "lte 탑재",
+    "유심 노트북",
+    "심슬롯 노트북",
+    "elitebook x360",
+    "elitebook 1030",
+    "elitebook 1040",
+    "x1 yoga",
+    "thinkpad yoga",
+    "latitude 2-in-1",
+    "latitude 7390",
+    "latitude 7400",
+    "spectre x360",
+    "zenbook flip",
+    "360도 노트북",
+    "터치 노트북 lte",
+    "썬더볼트 lte",
 ]
 
 # 크롤링 설정

@@ -1,40 +1,65 @@
-# 중고 노트북 매물 체크 시스템
+# 중고 노트북 LTE 매물 자동 검색
 
-중고 노트북 매물이 특정 조건을 만족하는지 확인하는 웹 애플리케이션입니다.
+중고나라, 번개장터, 당근마켓에서 조건에 맞는 노트북 LTE 매물을 자동으로 검색하고 표시합니다.
 
 ## 배포된 사이트
 
 https://liveq.github.io/notebook/
 
+## 검색 조건
+
+다음 6가지 조건을 모두 만족하는 매물을 검색합니다:
+
+- **CPU**: Intel i5 8세대 이상
+- **RAM**: 16GB 이상
+- **LTE**: LTE/WWAN/5G 지원
+- **360도 회전**: 2-in-1 컨버터블
+- **터치 패널**: 터치스크린
+- **썬더볼트**: Thunderbolt 3 이상
+
 ## 주요 기능
 
-- **매물 정보 입력**: 제조사, 모델명, 스펙 등 11개 필드 입력
-- **실시간 조건 체크**: 6가지 필수 조건 실시간 검증
-  - CPU: Intel i5 8세대 이상
-  - RAM: 16GB 이상
-  - LTE/WWAN/5G 지원
-  - 360도 회전 (2-in-1)
-  - 터치 패널
-  - 썬더볼트 3 이상
-- **매물 리스트 관리**: 추가, 삭제, 조건 충족 상태 표시
-- **JSON 저장/불러오기**: 데이터 백업 및 복원
+- 자동 크롤링 (GitHub Actions)
+- 표 형태로 결과 표시
+- 가격순 정렬 (오름차순/내림차순)
+- 신규 매물 필터
+- 화이트골드 디자인
+- 반응형 (모바일/데스크탑)
 
-## 기술 스택
+## 사용 방법
 
-- 순수 HTML/CSS/JavaScript (프레임워크 없음)
-- GitHub Pages 자동 배포
+1. https://liveq.github.io/notebook/ 접속
+2. "최신 결과 보기" 버튼 클릭
+3. 매물 확인 및 필터/정렬
+4. "보기" 버튼으로 원본 사이트 이동
 
-## 파일 구조
+## 자동 크롤링
+
+GitHub Actions에서 자동으로 크롤링을 실행합니다:
+
+- **수동 실행**: GitHub Actions 탭에서 "Run workflow" 클릭
+- **자동 실행**: 코드 푸시 시 자동 실행
+
+## 프로젝트 구조
 
 ```
 .
-├── index.html      # 메인 페이지
-├── styles.css      # 스타일시트 (화이트골드 디자인)
-├── script.js       # 로직 및 기능
-└── .github/
-    └── workflows/
-        └── deploy.yml  # GitHub Actions 배포 설정
+├── index.html          # 메인 페이지
+├── styles.css          # 스타일시트
+├── script.js           # 결과 표시 로직
+├── search_notebook.py  # Python 크롤러
+├── config.py           # 검색 조건 설정
+├── crawlers/           # 크롤러 모듈
+├── utils/              # 유틸리티
+└── data/
+    └── results.json    # 검색 결과
 ```
+
+## 기술 스택
+
+- **프론트엔드**: 순수 HTML/CSS/JavaScript
+- **크롤러**: Python 3.11 + Requests
+- **배포**: GitHub Pages + GitHub Actions
 
 ## 로컬 실행
 
@@ -43,23 +68,15 @@ https://liveq.github.io/notebook/
 git clone https://github.com/liveq/notebook.git
 cd notebook
 
-# 로컬 서버 실행 (Python)
+# Python 의존성 설치
+pip install -r requirements.txt
+
+# 크롤링 실행
+python search_notebook.py
+
+# 로컬 서버 실행
 python -m http.server 8000
-
-# 또는 (Node.js)
-npx serve
-
-# 브라우저에서 접속
-# http://localhost:8000
 ```
-
-## 사용 방법
-
-1. 매물 정보를 입력합니다
-2. 실시간으로 6가지 조건 충족 여부를 확인합니다
-3. '추가' 버튼을 클릭하여 리스트에 추가합니다
-4. 'JSON 저장' 버튼으로 데이터를 백업할 수 있습니다
-5. 'JSON 불러오기'로 이전에 저장한 데이터를 불러올 수 있습니다
 
 ## 라이선스
 
