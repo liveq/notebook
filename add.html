@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매물 추가 - LTE 노트북 검색</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #fafaf8;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #8a7a5f;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #c9b896;
+            border-radius: 6px;
+            font-size: 16px;
+            background-color: white;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #8a7a5f;
+            box-shadow: 0 0 0 3px rgba(138, 122, 95, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #8a7a5f;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #6d6149;
+        }
+
+        .btn-secondary {
+            background-color: #e8e8e8;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d5d5d5;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #8a7a5f;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .success-message {
+            display: none;
+            padding: 12px;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #777;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 목록으로 돌아가기</a>
+
+        <h1>매물 추가</h1>
+        <p class="subtitle">검색해서 찾은 중고 노트북 매물을 추가하세요</p>
+
+        <div id="successMessage" class="success-message">
+            ✓ 매물이 추가되었습니다!
+        </div>
+
+        <form id="addForm">
+            <div class="form-group">
+                <label for="platform">플랫폼 *</label>
+                <select id="platform" required>
+                    <option value="">선택하세요</option>
+                    <option value="중고나라">중고나라</option>
+                    <option value="번개장터">번개장터</option>
+                    <option value="당근마켓">당근마켓</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="title">제목 *</label>
+                <input type="text" id="title" required placeholder="예: HP 엘리트북 x360 1030 G3">
+            </div>
+
+            <div class="form-group">
+                <label for="url">링크 *</label>
+                <input type="url" id="url" required placeholder="https://...">
+                <p class="help-text">매물 페이지 전체 URL을 입력하세요</p>
+            </div>
+
+            <div class="form-group">
+                <label for="price">가격</label>
+                <input type="text" id="price" placeholder="예: 35만원">
+                <p class="help-text">가격을 모르면 비워두세요</p>
+            </div>
+
+            <div class="form-group">
+                <label for="location">위치</label>
+                <input type="text" id="location" placeholder="예: 서울 강남구">
+            </div>
+
+            <div class="form-group">
+                <label for="date">등록일</label>
+                <input type="text" id="date" placeholder="예: 2일 전">
+            </div>
+
+            <div class="form-group">
+                <label for="notes">메모</label>
+                <textarea id="notes" placeholder="조건 확인 사항, 특이사항 등"></textarea>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-primary">추가하기</button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('addForm').reset()">초기화</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // 폼 데이터 수집
+            const newItem = {
+                platform: document.getElementById('platform').value,
+                title: document.getElementById('title').value,
+                url: document.getElementById('url').value,
+                price: document.getElementById('price').value || '-',
+                location: document.getElementById('location').value || '-',
+                date: document.getElementById('date').value || '-',
+                conditions_met: document.getElementById('notes').value || '-',
+                collected_at: new Date().toISOString()
+            };
+
+            // LocalStorage에서 기존 데이터 가져오기
+            let localData = JSON.parse(localStorage.getItem('manualItems') || '[]');
+
+            // 새 항목 추가
+            localData.unshift(newItem); // 맨 앞에 추가 (최신순)
+
+            // LocalStorage에 저장
+            localStorage.setItem('manualItems', JSON.stringify(localData));
+
+            // 성공 메시지 표시
+            const successMsg = document.getElementById('successMessage');
+            successMsg.style.display = 'block';
+
+            // 폼 초기화
+            this.reset();
+
+            // 3초 후 성공 메시지 숨기기
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+
+            // 목록 페이지로 이동 (선택사항)
+            // setTimeout(() => {
+            //     window.location.href = 'index.html';
+            // }, 1500);
+        });
+    </script>
+</body>
+</html>

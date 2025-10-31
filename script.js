@@ -51,17 +51,50 @@ async function loadResults() {
         }
 
         const data = await response.json();
-        allResults = data.results || [];
+        let serverResults = data.results || [];
 
-        // 통계 업데이트
-        updateStats(data.stats);
+        // LocalStorage에서 수동 입력 데이터 로드
+        const manualItems = JSON.parse(localStorage.getItem('manualItems') || '[]');
+
+        // 수동 입력 데이터 형식 변환 (platform -> source, collected_at -> timestamp)
+        const normalizedManualItems = manualItems.map(item => ({
+            ...item,
+            source: item.platform,
+            timestamp: item.collected_at,
+            is_manual: true  // 수동 입력 표시
+        }));
+
+        // 서버 데이터와 수동 입력 데이터 합치기
+        allResults = [...normalizedManualItems, ...serverResults];
+
+        // 통계 업데이트 (수동 입력 포함)
+        const combinedStats = {
+            total_count: allResults.length,
+            new_count: data.stats?.new_count || 0,
+            last_updated: data.stats?.last_updated
+        };
+        updateStats(combinedStats);
 
         // 결과 표시
         applyFiltersAndSort();
 
     } catch (error) {
         console.error('데이터 로드 실패:', error);
-        showNoResults();
+
+        // 서버 데이터가 없어도 LocalStorage 데이터는 표시
+        const manualItems = JSON.parse(localStorage.getItem('manualItems') || '[]');
+        if (manualItems.length > 0) {
+            allResults = manualItems.map(item => ({
+                ...item,
+                source: item.platform,
+                timestamp: item.collected_at,
+                is_manual: true
+            }));
+            updateStats({ total_count: allResults.length, new_count: 0 });
+            applyFiltersAndSort();
+        } else {
+            showNoResults();
+        }
     }
 }
 
