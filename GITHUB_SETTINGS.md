@@ -193,7 +193,7 @@ npm run build
 1. https://github.com/liveq/notebook/actions 접속
 2. 좌측에서 "크롤링 & 배포" 클릭
 3. 우측 상단 "Run workflow" 버튼
-4. 브랜치 선택: claude/used-notebook-lte-crawler-011CUeJBMB3N9z5bCYmQa95g
+4. 브랜치 선택: claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6
 5. 녹색 "Run workflow" 버튼 클릭
 6. 5-10분 기다리기
 ```

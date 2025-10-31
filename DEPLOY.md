@@ -31,7 +31,7 @@ Render는 GitHub와 연동하여 코드를 푸시할 때마다 자동으로 배�
 ```
 Name: notebook-lte-search (또는 원하는 이름)
 Region: Singapore (가장 가까운 지역 선택)
-Branch: claude/used-notebook-lte-crawler-011CUeJBMB3N9z5bCYmQa95g
+Branch: claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6
 Root Directory: (비워두기)
 Runtime: Python 3
 Build Command: pip install -r requirements.txt

@@ -150,7 +150,7 @@ on:
   push:
     branches:
       - main  # main 브랜치만
-      # - claude/used-notebook-lte-crawler-011CUeJBMB3N9z5bCYmQa95g  # 주석 처리
+      # - claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6  # 주석 처리
 ```
 
 ### 배포 전 승인 필요

@@ -51,7 +51,7 @@ https://your-app-name.onrender.com
 ```bash
 git clone https://github.com/liveq/notebook.git
 cd notebook
-git checkout claude/used-notebook-lte-crawler-011CUeJBMB3N9z5bCYmQa95g
+git checkout claude/save-missing-code-011CUeSJXKciYKGzKiWPBLd6
 ```
 
 ### 2. 의존성 설치
