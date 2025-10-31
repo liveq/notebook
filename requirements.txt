@@ -1,0 +1,12 @@
+# 중고 노트북 LTE 매물 검색 프로그램 - 필수 패키지
+
+# 웹 크롤링
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# HTML 파싱
+html5lib>=1.1
+
+# 유틸리티
+python-dateutil>=2.8.2
