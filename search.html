@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자동 검색 - LTE 노트북</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #fafaf8;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #8a7a5f;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #8a7a5f;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #c9b896;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            color: #8a7a5f;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e8dcc8;
+        }
+
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .spec-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #fafaf8;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .spec-item strong {
+            color: #8a7a5f;
+            margin-right: 8px;
+            min-width: 80px;
+        }
+
+        .search-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .search-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border: 2px solid #c9b896;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .search-btn:hover {
+            background: #fafaf8;
+            border-color: #8a7a5f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-btn-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .platform-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .platform-icon.ebay {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .platform-icon.joonggonara {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .platform-icon.bunjang {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .platform-icon.daangn {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .platform-icon.naver {
+            background: #e8f5e9;
+            color: #03c75a;
+        }
+
+        .platform-icon.google {
+            background: #f3f4f6;
+            color: #5f6368;
+        }
+
+        .platform-info {
+            flex: 1;
+        }
+
+        .platform-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .platform-desc {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .arrow {
+            color: #8a7a5f;
+            font-size: 20px;
+        }
+
+        .search-all-btn {
+            width: 100%;
+            padding: 18px;
+            background: #8a7a5f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .search-all-btn:hover {
+            background: #6d6149;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .info-box {
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 목록으로 돌아가기</a>
+
+        <h1>자동 검색</h1>
+        <p class="subtitle">설정된 사양으로 각 플랫폼에서 검색합니다</p>
+
+        <div class="card">
+            <h2>검색 조건</h2>
+            <div class="specs-grid">
+                <div class="spec-item">
+                    <strong>CPU</strong>
+                    <span>Intel i5 8세대+</span>
+                </div>
+                <div class="spec-item">
+                    <strong>RAM</strong>
+                    <span>16GB 이상</span>
+                </div>
+                <div class="spec-item">
+                    <strong>LTE</strong>
+                    <span>WWAN/5G 필수</span>
+                </div>
+                <div class="spec-item">
+                    <strong>360도</strong>
+                    <span>2-in-1 컨버터블</span>
+                </div>
+                <div class="spec-item">
+                    <strong>터치</strong>
+                    <span>터치스크린</span>
+                </div>
+                <div class="spec-item">
+                    <strong>썬더볼트</strong>
+                    <span>TB3 이상</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>플랫폼별 검색</h2>
+
+            <div class="info-box">
+                💡 버튼을 클릭하면 해당 플랫폼에서 조건에 맞는 검색 결과가 열립니다. 마음에 드는 매물을 찾으면 "매물 추가" 페이지에서 추가하세요.
+            </div>
+
+            <div class="search-buttons">
+                <!-- eBay -->
+                <a href="#" class="search-btn" data-platform="ebay">
+                    <div class="search-btn-content">
+                        <div class="platform-icon ebay">eBay</div>
+                        <div class="platform-info">
+                            <div class="platform-name">eBay 해외직구</div>
+                            <div class="platform-desc">ThinkPad X1 Yoga, HP Elite, Dell Latitude WWAN</div>
+                        </div>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+
+                <!-- 중고나라 -->
+                <a href="#" class="search-btn" data-platform="joonggonara">
+                    <div class="search-btn-content">
+                        <div class="platform-icon joonggonara">중고나라</div>
+                        <div class="platform-info">
+                            <div class="platform-name">중고나라</div>
+                            <div class="platform-desc">네이버 카페 검색</div>
+                        </div>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+
+                <!-- 번개장터 -->
+                <a href="#" class="search-btn" data-platform="bunjang">
+                    <div class="search-btn-content">
+                        <div class="platform-icon bunjang">번개장터</div>
+                        <div class="platform-info">
+                            <div class="platform-name">번개장터</div>
+                            <div class="platform-desc">중고 거래 앱</div>
+                        </div>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+
+                <!-- 당근마켓 -->
+                <a href="#" class="search-btn" data-platform="daangn">
+                    <div class="search-btn-content">
+                        <div class="platform-icon daangn">당근마켓</div>
+                        <div class="platform-info">
+                            <div class="platform-name">당근마켓</div>
+                            <div class="platform-desc">지역 기반 중고 거래</div>
+                        </div>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+
+                <!-- 네이버 -->
+                <a href="#" class="search-btn" data-platform="naver">
+                    <div class="search-btn-content">
+                        <div class="platform-icon naver">N</div>
+                        <div class="platform-info">
+                            <div class="platform-name">네이버 통합검색</div>
+                            <div class="platform-desc">블로그, 카페 통합 검색</div>
+                        </div>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+
+                <!-- 구글 -->
+                <a href="#" class="search-btn" data-platform="google">
+                    <div class="search-btn-content">
+                        <div class="platform-icon google">G</div>
+                        <div class="platform-info">
+                            <div class="platform-name">구글 검색</div>
+                            <div class="platform-desc">통합 검색 결과</div>
+                        </div>
+                    </div>
+                    <span class="arrow">→</span>
+                </a>
+            </div>
+
+            <button class="search-all-btn" onclick="openAllSearches()">
+                모든 플랫폼에서 한번에 검색하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 검색 쿼리 설정
+        const searchQueries = {
+            ebay: [
+                'ThinkPad X1 Yoga WWAN LTE',
+                'HP Elite Dragonfly LTE',
+                'Dell Latitude 7420 2-in-1 WWAN'
+            ],
+            joonggonara: '노트북 LTE WWAN 2in1',
+            bunjang: '노트북 LTE',
+            daangn: '노트북 LTE 2in1',
+            naver: '중고 노트북 LTE 2in1 썬더볼트',
+            google: '중고 노트북 LTE WWAN 2in1 (중고나라 OR 번개장터 OR 당근마켓)'
+        };
+
+        // 검색 URL 생성
+        function getSearchUrl(platform) {
+            switch(platform) {
+                case 'ebay':
+                    // eBay - 복수 검색어 중 첫 번째 사용
+                    const ebayQuery = encodeURIComponent(searchQueries.ebay[0]);
+                    return `https://www.ebay.com/sch/i.html?_nkw=${ebayQuery}&_sop=10&LH_ItemCondition=3000|1500&_udlo=500&_udhi=2000`;
+
+                case 'joonggonara':
+                    // 중고나라 - 네이버 카페 검색
+                    const jgQuery = encodeURIComponent(searchQueries.joonggonara);
+                    return `https://search.naver.com/search.naver?where=article&query=${jgQuery}`;
+
+                case 'bunjang':
+                    // 번개장터 - 구글 site 검색
+                    const bjQuery = encodeURIComponent(`site:bunjang.co.kr ${searchQueries.bunjang}`);
+                    return `https://www.google.com/search?q=${bjQuery}`;
+
+                case 'daangn':
+                    // 당근마켓 - 구글 site 검색
+                    const dnQuery = encodeURIComponent(`site:daangn.com ${searchQueries.daangn}`);
+                    return `https://www.google.com/search?q=${dnQuery}`;
+
+                case 'naver':
+                    // 네이버 통합검색
+                    const nvQuery = encodeURIComponent(searchQueries.naver);
+                    return `https://search.naver.com/search.naver?query=${nvQuery}`;
+
+                case 'google':
+                    // 구글 검색
+                    const ggQuery = encodeURIComponent(searchQueries.google);
+                    return `https://www.google.com/search?q=${ggQuery}`;
+
+                default:
+                    return '#';
+            }
+        }
+
+        // 검색 버튼 클릭 이벤트
+        document.querySelectorAll('.search-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const platform = this.dataset.platform;
+                const url = getSearchUrl(platform);
+                window.open(url, '_blank');
+            });
+        });
+
+        // 모든 플랫폼 검색
+        function openAllSearches() {
+            const platforms = ['ebay', 'joonggonara', 'bunjang', 'daangn', 'naver', 'google'];
+
+            // 사용자 확인
+            if (confirm('6개의 새 탭이 열립니다. 계속하시겠습니까?')) {
+                platforms.forEach((platform, index) => {
+                    setTimeout(() => {
+                        const url = getSearchUrl(platform);
+                        window.open(url, '_blank');
+                    }, index * 500); // 0.5초 간격으로 열기
+                });
+            }
+        }
+    </script>
+</body>
+</html>
