@@ -463,6 +463,11 @@ td {
     color: #c62828;
 }
 
+.platform-badge.ebay {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
 .condition-badge {
     display: inline-block;
     padding: 4px 10px;

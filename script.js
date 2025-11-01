@@ -231,7 +231,8 @@ function getPlatformBadge(source) {
     const badges = {
         '중고나라': '<span class="platform-badge joonggonara">중고나라</span>',
         '번개장터': '<span class="platform-badge bunjang">번개장터</span>',
-        '당근마켓': '<span class="platform-badge daangn">당근마켓</span>'
+        '당근마켓': '<span class="platform-badge daangn">당근마켓</span>',
+        'eBay': '<span class="platform-badge ebay">eBay</span>'
     };
     return badges[source] || `<span class="platform-badge">${source}</span>`;
 }
