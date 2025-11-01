@@ -260,6 +260,16 @@
                     <span>TB3 이상</span>
                 </div>
             </div>
+
+            <div style="margin-top: 16px; padding: 12px; background: #fafaf8; border-radius: 6px; font-size: 13px;">
+                <strong style="color: #8a7a5f;">추천 모델:</strong>
+                <div style="margin-top: 8px; color: #666; line-height: 1.8;">
+                    • ThinkPad X1 Yoga Gen 5-8 (LTE)<br>
+                    • HP Elite Dragonfly G2/G3<br>
+                    • HP EliteBook x360 1030 G2-G8<br>
+                    • Dell Latitude 7420/7320 2-in-1 (WWAN)
+                </div>
+            </div>
         </div>
 
         <div class="card">
@@ -276,7 +286,7 @@
                         <div class="platform-icon ebay">eBay</div>
                         <div class="platform-info">
                             <div class="platform-name">eBay 해외직구</div>
-                            <div class="platform-desc">ThinkPad X1 Yoga, HP Elite, Dell Latitude WWAN</div>
+                            <div class="platform-desc">ThinkPad X1 Yoga, HP Elite/EliteBook x360, Dell Latitude</div>
                         </div>
                     </div>
                     <span class="arrow">→</span>
@@ -353,23 +363,24 @@
         // 검색 쿼리 설정
         const searchQueries = {
             ebay: [
-                'ThinkPad X1 Yoga WWAN LTE',
-                'HP Elite Dragonfly LTE',
-                'Dell Latitude 7420 2-in-1 WWAN'
+                'ThinkPad X1 Yoga Gen 5 Gen 6 Gen 7 Gen 8 WWAN LTE',
+                'HP Elite Dragonfly G2 G3 LTE WWAN',
+                'HP EliteBook x360 1030 G2 G3 G4 LTE WWAN',
+                'Dell Latitude 7420 7320 2-in-1 WWAN'
             ],
-            joonggonara: '노트북 LTE WWAN 2in1',
-            bunjang: '노트북 LTE',
+            joonggonara: '노트북 LTE WWAN 2in1 (ThinkPad X1 Yoga OR HP Elite OR Dell Latitude)',
+            bunjang: '노트북 LTE WWAN (ThinkPad OR HP OR Dell)',
             daangn: '노트북 LTE 2in1',
-            naver: '중고 노트북 LTE 2in1 썬더볼트',
-            google: '중고 노트북 LTE WWAN 2in1 (중고나라 OR 번개장터 OR 당근마켓)'
+            naver: '중고 노트북 LTE WWAN 2in1 썬더볼트 (ThinkPad X1 Yoga OR HP EliteBook OR HP Elite Dragonfly OR Dell Latitude)',
+            google: '중고 노트북 LTE WWAN 2in1 ThinkPad X1 Yoga OR HP EliteBook x360 OR HP Elite Dragonfly OR Dell Latitude 7420 (중고나라 OR 번개장터 OR 당근마켓)'
         };
 
         // 검색 URL 생성
         function getSearchUrl(platform) {
             switch(platform) {
                 case 'ebay':
-                    // eBay - 복수 검색어 중 첫 번째 사용
-                    const ebayQuery = encodeURIComponent(searchQueries.ebay[0]);
+                    // eBay - 모든 모델을 OR로 연결하여 검색
+                    const ebayQuery = encodeURIComponent('(ThinkPad X1 Yoga, HP Elite Dragonfly, HP EliteBook x360 1030, Dell Latitude 7420) (WWAN, LTE, 5G) 2-in-1');
                     return `https://www.ebay.com/sch/i.html?_nkw=${ebayQuery}&_sop=10&LH_ItemCondition=3000|1500&_udlo=500&_udhi=2000`;
 
                 case 'joonggonara':
