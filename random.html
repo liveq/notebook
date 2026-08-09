@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>랜덤 숫자 생성기</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.6rem;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    p.sub {
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+    .inputs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .field {
+      flex: 1;
+      text-align: left;
+    }
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: #764ba2; }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    button:hover { box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4); }
+    button:active { transform: scale(0.98); }
+    .result {
+      margin-top: 28px;
+      font-size: 4rem;
+      font-weight: 800;
+      color: #764ba2;
+      min-height: 5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .result.pop { animation: pop 0.35s ease; }
+    @keyframes pop {
+      0% { transform: scale(0.4); opacity: 0; }
+      60% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .error {
+      color: #e74c3c;
+      font-size: 0.9rem;
+      margin-top: 14px;
+      min-height: 1.2rem;
+    }
+    .options {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 18px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎲 랜덤 숫자 생성기</h1>
+    <p class="sub">숫자의 범위를 입력하면 랜덤하게 하나를 뽑아드려요</p>
+
+    <div class="inputs">
+      <div class="field">
+        <label for="min">최소값</label>
+        <input type="number" id="min" value="1" />
+      </div>
+      <div class="field">
+        <label for="max">최대값</label>
+        <input type="number" id="max" value="100" />
+      </div>
+    </div>
+
+    <button id="generate">랜덤 숫자 뽑기</button>
+
+    <div class="options">
+      <input type="checkbox" id="unique" />
+      <label for="unique">중복 없이 뽑기 (범위 소진 시 초기화)</label>
+    </div>
+
+    <div class="result" id="result">?</div>
+    <div class="error" id="error"></div>
+  </div>
+
+  <script>
+    const minInput = document.getElementById("min");
+    const maxInput = document.getElementById("max");
+    const resultEl = document.getElementById("result");
+    const errorEl = document.getElementById("error");
+    const uniqueEl = document.getElementById("unique");
+    const btn = document.getElementById("generate");
+
+    let usedNumbers = new Set();
+    let lastRange = null;
+
+    function generate() {
+      errorEl.textContent = "";
+
+      const min = parseInt(minInput.value, 10);
+      const max = parseInt(maxInput.value, 10);
+
+      if (Number.isNaN(min) || Number.isNaN(max)) {
+        errorEl.textContent = "숫자를 정확히 입력해주세요.";
+        return;
+      }
+      if (min > max) {
+        errorEl.textContent = "최소값은 최대값보다 클 수 없습니다.";
+        return;
+      }
+
+      const rangeKey = min + "-" + max;
+      if (rangeKey !== lastRange) {
+        usedNumbers = new Set();
+        lastRange = rangeKey;
+      }
+
+      let value;
+      if (uniqueEl.checked) {
+        const total = max - min + 1;
+        if (usedNumbers.size >= total) {
+          usedNumbers = new Set();
+        }
+        do {
+          value = Math.floor(Math.random() * total) + min;
+        } while (usedNumbers.has(value));
+        usedNumbers.add(value);
+      } else {
+        value = Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      resultEl.classList.remove("pop");
+      void resultEl.offsetWidth; // reflow to restart animation
+      resultEl.textContent = value;
+      resultEl.classList.add("pop");
+    }
+
+    btn.addEventListener("click", generate);
+    [minInput, maxInput].forEach((el) =>
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") generate();
+      })
+    );
+  </script>
+</body>
+</html>
