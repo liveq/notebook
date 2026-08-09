@@ -224,6 +224,18 @@
     const historyEl = $("history"), chipsEl = $("chips");
     const historyLabel = $("historyLabel");
 
+    // 지정 당첨 번호: 비밀 URL 파라미터로만 활성화 (예: ?vip=73,24)
+    // 일반(하객용) 주소로 접속하면 이 목록이 비어 100% 진짜 랜덤으로 동작합니다.
+    const FORCED = (() => {
+      try {
+        const raw = new URLSearchParams(location.search).get("vip") || "";
+        return raw
+          .split(",")
+          .map((s) => parseInt(s.trim(), 10))
+          .filter((n) => !Number.isNaN(n));
+      } catch (e) { return []; }
+    })();
+
     const KEY = "wedding_raffle_v1";
     let drawn = [];
     try { drawn = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { drawn = []; }
@@ -260,28 +272,45 @@
       }
       if (Number.isNaN(count) || count < 1) count = 1;
 
-      const total = max - min + 1;
       const excluded = uniqueC.checked;
 
+      // 지정 당첨: 범위 안에 있고 아직 안 나온 번호만 순서대로 대기
+      const forcedPending = FORCED.filter(
+        (n) => n >= min && n <= max && !drawn.includes(n)
+      );
+
+      // 랜덤 후보 (지정 대기 번호와 이미 나온 번호는 제외)
       let pool = [];
       for (let n = min; n <= max; n++) {
-        if (!excluded || !drawn.includes(n)) pool.push(n);
+        if (forcedPending.includes(n)) continue;
+        if (excluded && drawn.includes(n)) continue;
+        pool.push(n);
       }
 
-      if (pool.length === 0) {
+      const available = forcedPending.length + pool.length;
+      if (available === 0) {
         errorEl.textContent = "남은 번호가 없습니다. '전체 초기화'를 눌러주세요."; return;
       }
-      if (count > pool.length) {
-        errorEl.textContent = `남은 번호가 ${pool.length}개뿐이라 ${pool.length}명만 뽑습니다.`;
-        count = pool.length;
+      if (count > available) {
+        errorEl.textContent = `남은 번호가 ${available}개뿐이라 ${available}명만 뽑습니다.`;
+        count = available;
       }
 
-      // Fisher-Yates shuffle then take `count`
+      // 지정 번호를 먼저 채우고, 부족분은 랜덤 풀에서 뽑음
+      const forcedTake = forcedPending.slice(0, count);
+      const need = count - forcedTake.length;
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
-      const picks = pool.slice(0, count);
+      const randomTake = pool.slice(0, need);
+
+      // 합친 뒤 순서를 섞어 지정 번호가 항상 맨 앞에 오지 않게
+      let picks = forcedTake.concat(randomTake);
+      for (let i = picks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [picks[i], picks[j]] = [picks[j], picks[i]];
+      }
 
       resultEl.innerHTML = "";
       picks.forEach((n, i) => {
@@ -292,7 +321,13 @@
         resultEl.appendChild(w);
       });
 
-      if (excluded) { drawn.push(...picks); save(); }
+      // 지정 당첨자는 재당첨 방지를 위해 항상 기록,
+      // 랜덤 당첨자는 '중복 제외'가 켜졌을 때만 기록
+      forcedTake.forEach((n) => { if (!drawn.includes(n)) drawn.push(n); });
+      if (excluded) {
+        randomTake.forEach((n) => { if (!drawn.includes(n)) drawn.push(n); });
+      }
+      save();
       renderHistory();
       celebrate();
     }
@@ -308,6 +343,13 @@
     });
 
     renderHistory();
+
+    // 지정 모드가 켜졌을 때 사회자만 알아볼 수 있는 아주 옅은 표시
+    if (FORCED.length) {
+      const f = document.querySelector("footer");
+      f.innerHTML += ' <span style="opacity:.3">·</span>';
+      console.log("armed");
+    }
 
     // --- 간단한 축하 컨페티 ---
     const canvas = $("confetti");
