@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="결혼식 선물 추첨 - 번호 범위를 입력하면 랜덤하게 당첨자를 뽑아줍니다" />
+  <title>💍 결혼식 선물 추첨</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #c9a24b;
+      --rose: #d98a8a;
+      --ink: #4a4038;
+      --soft: #8a7f74;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #fdf6ef 0%, #f6e7e1 100%);
+      color: var(--ink);
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    .card {
+      background: #fffdfb;
+      border: 1px solid #efe3d6;
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(150, 110, 80, 0.18);
+      padding: 40px 30px 34px;
+      width: 100%;
+      max-width: 460px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+    .hearts { font-size: 1.4rem; letter-spacing: 6px; }
+    h1 {
+      font-size: 1.55rem;
+      margin: 8px 0 4px;
+      letter-spacing: -0.5px;
+    }
+    p.sub { color: var(--soft); font-size: 0.9rem; margin-bottom: 26px; }
+    .inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .field { text-align: left; }
+    .field.full { grid-column: 1 / -1; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--soft);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border: 1.5px solid #e6d7c8;
+      border-radius: 12px;
+      outline: none;
+      background: #fffdfb;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--gold); }
+    .options {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 6px 0 18px;
+      font-size: 0.85rem;
+      color: var(--soft);
+    }
+    button.draw {
+      width: 100%;
+      padding: 15px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--rose) 100%);
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 10px 24px rgba(201, 162, 75, 0.3);
+    }
+    button.draw:hover { box-shadow: 0 14px 30px rgba(217, 138, 138, 0.4); }
+    button.draw:active { transform: scale(0.98); }
+    button.draw:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+    .result {
+      margin-top: 26px;
+      min-height: 4.6rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    .winner {
+      font-size: 2.6rem;
+      font-weight: 800;
+      color: var(--gold);
+      background: #fbf3e6;
+      border: 2px solid #eeddc0;
+      border-radius: 16px;
+      padding: 10px 20px;
+      min-width: 76px;
+      animation: pop 0.45s cubic-bezier(.2,1.4,.4,1) both;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    .placeholder { font-size: 1rem; color: #cbb9a6; }
+    .error {
+      color: #c0392b;
+      font-size: 0.88rem;
+      margin-top: 12px;
+      min-height: 1.1rem;
+    }
+    .history {
+      margin-top: 22px;
+      border-top: 1px dashed #ead9c6;
+      padding-top: 16px;
+      text-align: left;
+      display: none;
+    }
+    .history.show { display: block; }
+    .history .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .history .head span { font-size: 0.82rem; color: var(--soft); font-weight: 600; }
+    .history button.reset {
+      font-size: 0.78rem;
+      color: var(--soft);
+      background: none;
+      border: 1px solid #e6d7c8;
+      border-radius: 8px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .history button.reset:hover { color: var(--rose); border-color: var(--rose); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--ink);
+      background: #f6ede2;
+      border-radius: 999px;
+      padding: 5px 12px;
+    }
+    canvas.confetti {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+    footer { margin-top: 20px; font-size: 0.72rem; color: #cbb9a6; }
+  </style>
+</head>
+<body>
+  <canvas class="confetti" id="confetti"></canvas>
+  <div class="card">
+    <div class="hearts">🤍 💍 🤍</div>
+    <h1>결혼식 선물 추첨</h1>
+    <p class="sub">번호 범위를 입력하고 당첨자를 뽑아주세요</p>
+
+    <div class="inputs">
+      <div class="field">
+        <label for="min">시작 번호</label>
+        <input type="number" id="min" value="1" inputmode="numeric" />
+      </div>
+      <div class="field">
+        <label for="max">끝 번호</label>
+        <input type="number" id="max" value="100" inputmode="numeric" />
+      </div>
+      <div class="field full">
+        <label for="count">한 번에 뽑을 인원</label>
+        <input type="number" id="count" value="1" min="1" inputmode="numeric" />
+      </div>
+    </div>
+
+    <div class="options">
+      <input type="checkbox" id="unique" checked />
+      <label for="unique" style="margin:0;font-weight:500;cursor:pointer">이미 당첨된 번호는 제외</label>
+    </div>
+
+    <button class="draw" id="draw">🎉 당첨자 뽑기</button>
+
+    <div class="result" id="result">
+      <span class="placeholder">여기에 당첨 번호가 표시됩니다</span>
+    </div>
+    <div class="error" id="error"></div>
+
+    <div class="history" id="history">
+      <div class="head">
+        <span id="historyLabel">당첨 명단</span>
+        <button class="reset" id="reset">전체 초기화</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <footer>랜덤 추첨 · 새로고침해도 명단은 저장됩니다</footer>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const minI = $("min"), maxI = $("max"), countI = $("count");
+    const uniqueC = $("unique"), drawBtn = $("draw");
+    const resultEl = $("result"), errorEl = $("error");
+    const historyEl = $("history"), chipsEl = $("chips");
+    const historyLabel = $("historyLabel");
+
+    const KEY = "wedding_raffle_v1";
+    let drawn = [];
+    try { drawn = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { drawn = []; }
+
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(drawn)); } catch (e) {} }
+
+    function renderHistory() {
+      if (drawn.length === 0) {
+        historyEl.classList.remove("show");
+        return;
+      }
+      historyEl.classList.add("show");
+      historyLabel.textContent = `당첨 명단 (총 ${drawn.length}명)`;
+      chipsEl.innerHTML = "";
+      drawn.forEach((n, i) => {
+        const c = document.createElement("div");
+        c.className = "chip";
+        c.textContent = `${i + 1}. ${n}번`;
+        chipsEl.appendChild(c);
+      });
+    }
+
+    function draw() {
+      errorEl.textContent = "";
+      const min = parseInt(minI.value, 10);
+      const max = parseInt(maxI.value, 10);
+      let count = parseInt(countI.value, 10);
+
+      if (Number.isNaN(min) || Number.isNaN(max)) {
+        errorEl.textContent = "시작 번호와 끝 번호를 정확히 입력해주세요."; return;
+      }
+      if (min > max) {
+        errorEl.textContent = "시작 번호가 끝 번호보다 클 수 없습니다."; return;
+      }
+      if (Number.isNaN(count) || count < 1) count = 1;
+
+      const total = max - min + 1;
+      const excluded = uniqueC.checked;
+
+      let pool = [];
+      for (let n = min; n <= max; n++) {
+        if (!excluded || !drawn.includes(n)) pool.push(n);
+      }
+
+      if (pool.length === 0) {
+        errorEl.textContent = "남은 번호가 없습니다. '전체 초기화'를 눌러주세요."; return;
+      }
+      if (count > pool.length) {
+        errorEl.textContent = `남은 번호가 ${pool.length}개뿐이라 ${pool.length}명만 뽑습니다.`;
+        count = pool.length;
+      }
+
+      // Fisher-Yates shuffle then take `count`
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const picks = pool.slice(0, count);
+
+      resultEl.innerHTML = "";
+      picks.forEach((n, i) => {
+        const w = document.createElement("div");
+        w.className = "winner";
+        w.style.animationDelay = (i * 0.12) + "s";
+        w.textContent = n;
+        resultEl.appendChild(w);
+      });
+
+      if (excluded) { drawn.push(...picks); save(); }
+      renderHistory();
+      celebrate();
+    }
+
+    drawBtn.addEventListener("click", draw);
+    [minI, maxI, countI].forEach((el) =>
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter") draw(); })
+    );
+    $("reset").addEventListener("click", () => {
+      if (!confirm("당첨 명단을 모두 지울까요?")) return;
+      drawn = []; save(); renderHistory();
+      resultEl.innerHTML = '<span class="placeholder">여기에 당첨 번호가 표시됩니다</span>';
+    });
+
+    renderHistory();
+
+    // --- 간단한 축하 컨페티 ---
+    const canvas = $("confetti");
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    resize();
+    addEventListener("resize", resize);
+    const colors = ["#c9a24b", "#d98a8a", "#f4d7a1", "#ffffff", "#e8c07d"];
+    function celebrate() {
+      for (let i = 0; i < 120; i++) {
+        particles.push({
+          x: innerWidth / 2,
+          y: innerHeight / 3,
+          vx: (Math.random() - 0.5) * 12,
+          vy: Math.random() * -12 - 4,
+          size: Math.random() * 7 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rot: Math.random() * Math.PI,
+          vr: (Math.random() - 0.5) * 0.3,
+          life: 1,
+        });
+      }
+      if (!running) { running = true; requestAnimationFrame(loop); }
+    }
+    let running = false;
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((p) => {
+        p.vy += 0.35; p.x += p.vx; p.y += p.vy;
+        p.rot += p.vr; p.life -= 0.008;
+        ctx.save();
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      });
+      particles = particles.filter((p) => p.life > 0 && p.y < canvas.height + 40);
+      if (particles.length > 0) requestAnimationFrame(loop);
+      else { running = false; ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    }
+  </script>
+</body>
+</html>
