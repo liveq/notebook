@@ -30,20 +30,58 @@
       border: 1px solid #efe3d6;
       border-radius: 24px;
       box-shadow: 0 24px 60px rgba(150, 110, 80, 0.18);
-      padding: 40px 30px 34px;
+      padding: 34px 30px 30px;
       width: 100%;
       max-width: 460px;
       text-align: center;
       position: relative;
       z-index: 2;
     }
-    .hearts { font-size: 1.4rem; letter-spacing: 6px; }
-    h1 {
-      font-size: 1.55rem;
-      margin: 8px 0 4px;
-      letter-spacing: -0.5px;
+    .hearts { font-size: 1.3rem; letter-spacing: 6px; }
+    h1 { font-size: 1.5rem; margin: 8px 0 4px; letter-spacing: -0.5px; }
+    p.sub { color: var(--soft); font-size: 0.9rem; margin-bottom: 16px; }
+
+    /* 신랑 · 신부 픽셀 캐릭터 */
+    .couple {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 20px;
+      margin: 4px 0 22px;
     }
-    p.sub { color: var(--soft); font-size: 0.9rem; margin-bottom: 26px; }
+    .char {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .char .sprite { display: block; transition: transform 0.12s; }
+    .char.bounce .sprite { animation: bounce 0.34s ease; }
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      30% { transform: translateY(-9px) scale(1.06); }
+      100% { transform: translateY(0); }
+    }
+    .clabel { font-size: 0.75rem; color: var(--soft); font-weight: 700; }
+    .amp { align-self: center; font-size: 1.15rem; padding-bottom: 24px; }
+    .tapheart {
+      position: fixed;
+      pointer-events: none;
+      font-size: 1.05rem;
+      z-index: 9;
+      animation: floatUp 0.85s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-34px); }
+    }
+
     .inputs {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -94,7 +132,6 @@
     }
     button.draw:hover { box-shadow: 0 14px 30px rgba(217, 138, 138, 0.4); }
     button.draw:active { transform: scale(0.98); }
-    button.draw:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
     .result {
       margin-top: 26px;
       min-height: 4.6rem;
@@ -120,12 +157,7 @@
       100% { transform: scale(1) rotate(0); opacity: 1; }
     }
     .placeholder { font-size: 1rem; color: #cbb9a6; }
-    .error {
-      color: #c0392b;
-      font-size: 0.88rem;
-      margin-top: 12px;
-      min-height: 1.1rem;
-    }
+    .error { color: #c0392b; font-size: 0.88rem; margin-top: 12px; min-height: 1.1rem; }
     .history {
       margin-top: 22px;
       border-top: 1px dashed #ead9c6;
@@ -178,6 +210,18 @@
     <h1>결혼식 선물 추첨</h1>
     <p class="sub">번호 범위를 입력하고 당첨자를 뽑아주세요</p>
 
+    <div class="couple">
+      <button class="char" id="groom" type="button" aria-label="신랑">
+        <span class="sprite" id="groomSprite"></span>
+        <span class="clabel">신랑</span>
+      </button>
+      <span class="amp">💛</span>
+      <button class="char" id="bride" type="button" aria-label="신부">
+        <span class="sprite" id="brideSprite"></span>
+        <span class="clabel">신부</span>
+      </button>
+    </div>
+
     <div class="inputs">
       <div class="field">
         <label for="min">시작 번호</label>
@@ -224,29 +268,113 @@
     const historyEl = $("history"), chipsEl = $("chips");
     const historyLabel = $("historyLabel");
 
-    // 지정 당첨 번호: 비밀 URL 파라미터로만 활성화 (예: ?vip=73,24)
-    // 일반(하객용) 주소로 접속하면 이 목록이 비어 100% 진짜 랜덤으로 동작합니다.
-    const FORCED = (() => {
-      try {
-        const raw = new URLSearchParams(location.search).get("vip") || "";
-        return raw
-          .split(",")
-          .map((s) => parseInt(s.trim(), 10))
-          .filter((n) => !Number.isNaN(n));
-      } catch (e) { return []; }
-    })();
+    /* ---------- 픽셀 캐릭터 ---------- */
+    const PIX = {
+      k: "#2b2b2b", // 정장/머리 검정
+      s: "#f4c9a1", // 피부
+      e: "#35241a", // 눈
+      w: "#ffffff", // 셔츠/드레스
+      r: "#d98a8a", // 입/나비넥타이
+      v: "#f3e9ee", // 면사포
+      h: "#7a4a2a", // 신부 머리
+    };
+    const GROOM = [
+      "   kkkkkk   ",
+      "  kkkkkkkk  ",
+      "  kssssssk  ",
+      "  ksessesk  ",
+      "  kssssssk  ",
+      "  kssrrssk  ",
+      "   ssssss   ",
+      "   wwwwww   ",
+      "  kwwrrwwk  ",
+      "  kwwwwwwk  ",
+      "  kwwwwwwk  ",
+      "  kk    kk  ",
+      "  kk    kk  ",
+    ];
+    const BRIDE = [
+      "   vvvvvv   ",
+      "  vhhhhhhv  ",
+      "  vhsssshv  ",
+      "  vsessesv  ",
+      "  vssssssv  ",
+      "  vssrrssv  ",
+      "   ssssss   ",
+      "   wwwwww   ",
+      "  wwwwwwww  ",
+      " wwwwwwwwww ",
+      " wwwwwwwwww ",
+      "wwwwwwwwwwww",
+      "wwwwwwwwwwww",
+    ];
+    function sprite(rows, cell) {
+      const cols = Math.max.apply(null, rows.map((r) => r.length));
+      let rects = "";
+      rows.forEach((row, y) => {
+        for (let x = 0; x < row.length; x++) {
+          const c = row[x];
+          if (c === " " || !PIX[c]) continue;
+          rects +=
+            '<rect x="' + x * cell + '" y="' + y * cell +
+            '" width="' + cell + '" height="' + cell + '" fill="' + PIX[c] + '"/>';
+        }
+      });
+      const w = cols * cell, h = rows.length * cell;
+      return (
+        '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + " " + h +
+        '" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">' +
+        rects + "</svg>"
+      );
+    }
+    $("groomSprite").innerHTML = sprite(GROOM, 7);
+    $("brideSprite").innerHTML = sprite(BRIDE, 7);
 
+    /* ---------- 지정 당첨 (캐릭터 탭 제스처) ---------- */
+    const GROOM_NUM = 37;      // 신랑 번호
+    const BRIDE_NUM = 24;      // 신부 번호
+    const TAP_THRESHOLD = 3;   // 몇 번 탭하면 무장되는지
+    const TAP_WINDOW = 15000;  // 탭 후 이 시간(ms) 안에 뽑아야 유효
+    let taps = {}; taps[GROOM_NUM] = 0; taps[BRIDE_NUM] = 0;
+    let lastTapped = null, lastTapTime = 0;
+
+    function floatHeart(el) {
+      const h = document.createElement("span");
+      h.className = "tapheart";
+      h.textContent = "💛";
+      const r = el.getBoundingClientRect();
+      h.style.left = (r.left + r.width / 2 - 9) + "px";
+      h.style.top = (r.top + 4) + "px";
+      document.body.appendChild(h);
+      setTimeout(() => h.remove(), 850);
+    }
+    function tapChar(num, el) {
+      taps[num]++; lastTapped = num; lastTapTime = Date.now();
+      el.classList.remove("bounce"); void el.offsetWidth; el.classList.add("bounce");
+      floatHeart(el);
+    }
+    $("groom").addEventListener("click", () => tapChar(GROOM_NUM, $("groom")));
+    $("bride").addEventListener("click", () => tapChar(BRIDE_NUM, $("bride")));
+
+    function currentForced() {
+      const recent = Date.now() - lastTapTime < TAP_WINDOW;
+      if (!recent) return [];
+      const armed = [GROOM_NUM, BRIDE_NUM].filter((n) => taps[n] >= TAP_THRESHOLD);
+      if (!armed.length) return [];
+      return [armed.indexOf(lastTapped) >= 0 ? lastTapped : armed[0]];
+    }
+    function clearArm() {
+      taps[GROOM_NUM] = 0; taps[BRIDE_NUM] = 0; lastTapped = null; lastTapTime = 0;
+    }
+
+    /* ---------- 당첨 명단 저장 ---------- */
     const KEY = "wedding_raffle_v1";
     let drawn = [];
     try { drawn = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { drawn = []; }
-
     function save() { try { localStorage.setItem(KEY, JSON.stringify(drawn)); } catch (e) {} }
 
     function renderHistory() {
-      if (drawn.length === 0) {
-        historyEl.classList.remove("show");
-        return;
-      }
+      if (drawn.length === 0) { historyEl.classList.remove("show"); return; }
       historyEl.classList.add("show");
       historyLabel.textContent = `당첨 명단 (총 ${drawn.length}명)`;
       chipsEl.innerHTML = "";
@@ -258,6 +386,7 @@
       });
     }
 
+    /* ---------- 추첨 ---------- */
     function draw() {
       errorEl.textContent = "";
       const min = parseInt(minI.value, 10);
@@ -274,16 +403,15 @@
 
       const excluded = uniqueC.checked;
 
-      // 지정 당첨: 범위 안에 있고 아직 안 나온 번호만 순서대로 대기
-      const forcedPending = FORCED.filter(
-        (n) => n >= min && n <= max && !drawn.includes(n)
-      );
+      // 지정 당첨: 범위 안에 있는 것만 (범위 밖이면 무시해 '불가능한 번호' 노출 방지)
+      const forcedList = currentForced();
+      const forcedPending = forcedList.filter((n) => n >= min && n <= max);
 
-      // 랜덤 후보 (지정 대기 번호와 이미 나온 번호는 제외)
+      // 랜덤 후보 (지정 번호와 이미 나온 번호는 제외)
       let pool = [];
       for (let n = min; n <= max; n++) {
-        if (forcedPending.includes(n)) continue;
-        if (excluded && drawn.includes(n)) continue;
+        if (forcedPending.indexOf(n) >= 0) continue;
+        if (excluded && drawn.indexOf(n) >= 0) continue;
         pool.push(n);
       }
 
@@ -296,7 +424,7 @@
         count = available;
       }
 
-      // 지정 번호를 먼저 채우고, 부족분은 랜덤 풀에서 뽑음
+      // 지정 번호를 먼저 채우고, 부족분은 랜덤 풀에서
       const forcedTake = forcedPending.slice(0, count);
       const need = count - forcedTake.length;
       for (let i = pool.length - 1; i > 0; i--) {
@@ -321,14 +449,12 @@
         resultEl.appendChild(w);
       });
 
-      // 지정 당첨자는 재당첨 방지를 위해 항상 기록,
-      // 랜덤 당첨자는 '중복 제외'가 켜졌을 때만 기록
-      forcedTake.forEach((n) => { if (!drawn.includes(n)) drawn.push(n); });
-      if (excluded) {
-        randomTake.forEach((n) => { if (!drawn.includes(n)) drawn.push(n); });
-      }
+      // 지정 당첨자는 항상 기록(재당첨 방지), 랜덤은 '중복 제외'일 때만 기록
+      forcedTake.forEach((n) => { if (drawn.indexOf(n) < 0) drawn.push(n); });
+      if (excluded) { randomTake.forEach((n) => { if (drawn.indexOf(n) < 0) drawn.push(n); }); }
       save();
       renderHistory();
+      clearArm();
       celebrate();
     }
 
@@ -344,17 +470,10 @@
 
     renderHistory();
 
-    // 지정 모드가 켜졌을 때 사회자만 알아볼 수 있는 아주 옅은 표시
-    if (FORCED.length) {
-      const f = document.querySelector("footer");
-      f.innerHTML += ' <span style="opacity:.3">·</span>';
-      console.log("armed");
-    }
-
-    // --- 간단한 축하 컨페티 ---
+    /* ---------- 축하 컨페티 ---------- */
     const canvas = $("confetti");
     const ctx = canvas.getContext("2d");
-    let particles = [];
+    let particles = [], running = false;
     function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
     resize();
     addEventListener("resize", resize);
@@ -362,29 +481,22 @@
     function celebrate() {
       for (let i = 0; i < 120; i++) {
         particles.push({
-          x: innerWidth / 2,
-          y: innerHeight / 3,
-          vx: (Math.random() - 0.5) * 12,
-          vy: Math.random() * -12 - 4,
+          x: innerWidth / 2, y: innerHeight / 3,
+          vx: (Math.random() - 0.5) * 12, vy: Math.random() * -12 - 4,
           size: Math.random() * 7 + 3,
           color: colors[Math.floor(Math.random() * colors.length)],
-          rot: Math.random() * Math.PI,
-          vr: (Math.random() - 0.5) * 0.3,
-          life: 1,
+          rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3, life: 1,
         });
       }
       if (!running) { running = true; requestAnimationFrame(loop); }
     }
-    let running = false;
     function loop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particles.forEach((p) => {
-        p.vy += 0.35; p.x += p.vx; p.y += p.vy;
-        p.rot += p.vr; p.life -= 0.008;
+        p.vy += 0.35; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.008;
         ctx.save();
         ctx.globalAlpha = Math.max(p.life, 0);
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
+        ctx.translate(p.x, p.y); ctx.rotate(p.rot);
         ctx.fillStyle = p.color;
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
         ctx.restore();
