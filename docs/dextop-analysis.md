@@ -388,3 +388,153 @@ Dextop을 그냥 설치해 세션 시작을 눌러 보고 **진단 리포트의 
 | `InputDispatcher.kt` | 39 | `IInputManager.injectInputEvent` 래퍼 |
 | `DeviceProfiles.kt` | 44 | 기기 매칭 규칙 목록 (**패치 지점**) |
 | `CapabilityProbe.kt` | 45 | 읽기 전용 런타임 능력 탐지 |
+
+---
+
+# 부록 A: 실기기 검증 결과 (SM-F926N, 2026-08-23)
+
+문서 본문 §3의 판정을 실기기 진단 리포트로 검증했다. **결론이 부분적으로 갱신된다.**
+
+## A-0. 전제 정정
+
+기기 실측값은 One UI 6.1 / Android 14가 아니라 **Android 15 (API 35) / One UI 7.0** 이다.
+
+```
+model: SM-F926N   device: q2q   product: q2qksx
+fingerprint: samsung/q2qksx/q2q:15/AP3A.240905.015.A2/F926NKSSDKZE1
+release: 15   sdk: 35
+com.samsung.android.oneui.version.70000   (최상위)
+```
+
+즉 §3 근거 1의 SCG11 리포트(Android 15 / One UI 7.0)와 **완전히 동일한 소프트웨어 구성**이다.
+단, SCG11 리포트는 Dextop 1.1.1 기준이고 이번 검증은 1.4.2다.
+
+## A-1. 판정 갱신 — 실패 지점이 §3 예측보다 훨씬 뒤였다
+
+SCG11 리포트는 "VirtualDisplay/WindowManager/SurfaceControl 미러링 전부 ❌"였으나,
+**1.4.2에서는 미러링까지 전부 성공한다.** 세션 로그 원문:
+
+| 시각 | 로그 | 판정 |
+| --- | --- | --- |
+| 16.897 | `DisplayBackend created request strategy=overlay_settings spec=2208x1768/223` | 오버레이 요청 ✅ |
+| 17.146 | `cleared inherited metrics display=32` | **디스플레이 32 생성 ✅** |
+| 17.151~155 | `ignore orientation request applied` / `fixed rotation applied` / `display rotation lock applied` | `configureDisplay()` ✅ |
+| 17.171 | `mirror attach host=1768x2208 content=2208x1768/223` | |
+| 17.207 | **`mirror strategy=virtual_display success=true`** | **미러링 ✅** |
+| 17.208 | `W/DisplayTopology topology API is unavailable on this framework` | 예상대로 무해하게 스킵 |
+| 17.222 → 19.426 | `registered virtual pointer profile=touchpad` → `SOURCE_TOUCHPAD unavailable; falling back to virtual mouse` → `virtual pointer ready profile=mouse deviceId=35` | 입력 ✅ (터치패드만 폴백) |
+
+사용자 관찰: **검은 화면 + 마우스 커서 1개.** 그 이후 아무 반응 없음.
+
+→ **실패 지점은 "디스플레이에 띄울 내용이 없는 것" 단 하나다.**
+   `launchHome()`의 성공/실패 로그가 둘 다 없다(성공은 `Log.i`만 남기고 `OperationLog`에 안 쓴다).
+   화면이 비어 있으므로 실질적으로 HOME/DeX 셸이 붙지 않았다.
+
+## A-2. 구조적 원인 확인 — §2의 진단이 로그로 직접 입증됨
+
+```
+16.734  I/DesktopMode platform-managed environment=samsung_dex
+40.636  I/DesktopMode restored settings count=0
+```
+
+`DesktopModeConfigurator.applyForCurrentDevice()`가 `platformManaged`에서 즉시 반환(`:26`)했고,
+세션 종료 시 복원할 설정이 **0개**였다. 즉 **Dextop은 데스크톱 모드를 켜려는 시도를 단 한 번도 하지 않았다.**
+
+리포트의 `[IMPORTANT SETTINGS]`가 이를 뒷받침한다:
+```
+enable_freeform_support: 0
+force_desktop_mode_on_external_displays: 0
+force_resizable_activities: 1        (기기 기본값, Dextop이 설정한 것 아님)
+```
+
+§2에서 "삼성 기기에서 Dextop이 데스크톱 모드를 만드는 코드는 0줄"이라고 한 것이 그대로 재현됐다.
+
+## A-3. 능력 탐지 결과 — §4 우회안의 전제가 실기기에서 성립
+
+```
+probe.privilegedAccess:      supported=true
+probe.overlayDisplaySetting: supported=true
+probe.displayManager:        supported=true
+probe.windowManagerMirror:   supported=true    (IWindowManager.mirrorDisplay)
+probe.surfaceControlMirror:  supported=false   NoSuchMethodException
+probe.surfaceControlTransaction: supported=true
+```
+
+`SurfaceControl.mirrorDisplay(int)`는 삼성이 제거했으나, `virtual_display`와 `window_manager`
+두 경로가 살아 있어 폴백 체인이 성립한다. (§1-6의 3전략 중 2개 가용)
+
+**결정적으로, 시스템 기능 목록에 다음이 존재한다:**
+```
+android.software.freeform_window_management
+android.software.activities_on_secondary_displays
+```
+→ §4의 AOSP 프리폼 우회안이 요구하는 플랫폼 기능이 **이 기기에 실재한다.**
+   §4에서 "가장 불확실"로 분류했던 관문의 전제 조건이 최소한 기능 선언 수준에서는 충족된다.
+
+## A-4. 갱신된 판정
+
+| 항목 | §3 원판정 | A 검증 후 |
+| --- | --- | --- |
+| 오버레이 디스플레이 생성 | "가능성 높음" | **확인됨 ✅** |
+| 미러링 | "불확실 (SCG11은 3전략 전부 ❌)" | **확인됨 ✅** (1.4.2에서 해결됨) |
+| 입력 주입 | 미검증 | **확인됨 ✅** (uinput 마우스) |
+| 삼성 덱스 부착 | "불가능" | **불가능 확정 ❌** — 화면이 비어 있음 |
+| AOSP 프리폼 우회 | "성공률 낮음~중간" | **시도 가치 상승** — 필요한 플랫폼 기능이 실재하고, 앞 단계가 전부 통과 |
+
+**본문 §3의 결론(삼성 덱스로는 불가)은 유지된다.** 다만 실패 원인이 "미러링 스택이 죽어서"가
+아니라 **"플랫폼이 그 디스플레이에 셸을 붙여주지 않아서"** 임이 로그로 특정됐다. 이는 §2에서
+추론했던 인과와 정확히 일치한다.
+
+## A-5. 부수 발견 — 폴딩 중 세션 종료 시 네비게이션 바 복구 실패
+
+```
+37.868  I/FoldState hinge sensor angle=90.0
+38.071  I/FoldState hinge sensor angle=0.0                    ← 기기를 접음
+39.685  I/DisplayBackend host reconfiguration 2208x1768/223 -> 2289x840/223   ← 커버 디스플레이
+39.773  live resized display=32 to 2289x840/223; tasks retained
+40.614  I/PhoneNavigation disabled=false method=disable/3
+40.715  display_removed_33 / 40.815 display_removed_32        ← 세션 종료
+─────
+40:54~  E/PhoneNavigation state update failed disabled=false error=IllegalStateException  × 6
+```
+
+`setPhoneNavigationDisabled(false)`가 120/450/1200/2400/4000ms 재시도(`MirrorService.kt:7383`)를
+수행하지만, 세션 종료 후 `navigationToken` 바인더가 무효화되어 `IStatusBarService.disable`이
+`IllegalStateException`으로 계속 실패했다. 결과적으로 **네비게이션 바가 비활성 상태로 남아
+사용자가 홈으로 나갈 수 없었고 재부팅이 필요했다.**
+
+- 재현 조건: 세션 활성 중 기기를 접어 커버 디스플레이로 전환
+- 회피: 세션 중 폴딩 금지
+- 재부팅 없는 복구: Stellar Terminal에서 `cmd statusbar send-disable-flag none`
+  (`docs/wiki/ADB-System-Recovery.md` §4와 동일)
+- 상류 보고 가치 있음 — One UI 7 + Fold3 조합의 재현 가능한 버그
+
+## A-6. 다음 검증 단계 (빌드 불필요)
+
+§4 패치를 작성하기 전에 두 가지를 실기기에서 먼저 확인한다.
+
+**1) 디스플레이가 "빈 껍데기"인지 "죽은 화면"인지 판별**
+   세션 시작 후 검은 화면 상태에서 Dextop **앱 런처**로 임의의 앱 실행
+   (`MirrorService.launchPackage()` `:420` → `ActivityOptions.setLaunchDisplayId`)
+   - 앱이 표시됨 → 디스플레이는 정상, HOME/셸만 부재 → **프리폼 패치 성공 가능성 높음**
+   - 앱도 미표시 → 디스플레이 자체가 사용 불가 → 패치 무의미
+
+**2) 프리폼 전역 설정을 수동으로 켜고 재시도** (Stellar Terminal)
+```sh
+settings put global enable_freeform_support 1
+settings put global force_resizable_activities 1
+settings put global force_desktop_mode_on_external_displays 1
+```
+   이는 `aospFreeform()`의 `AndroidDesktopOverrides.compatibilityValues`
+   (`DesktopEnvironment.kt:87`)와 동일한 값이다. 즉 §4 패치가 런타임에 할 일을
+   손으로 미리 해보는 것과 같다.
+
+   되돌리기: 위 세 값을 `0`으로 재설정 (원래 `force_resizable_activities`만 `1`이었음)
+
+   추가로, 세션이 살아 있는 동안 디스플레이 id를 확인해 윈도잉 모드를 직접 지정해볼 수 있다:
+```sh
+dumpsys display | grep -i "mDisplayId\|overlay"
+wm set-display-windowing-mode -d <id> 5
+```
+
+두 검증 결과에 따라 §4의 `samsung_pre_desktop_windowing` 규칙 작성 여부를 결정한다.
