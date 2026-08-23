@@ -538,3 +538,133 @@ wm set-display-windowing-mode -d <id> 5
 ```
 
 두 검증 결과에 따라 §4의 `samsung_pre_desktop_windowing` 규칙 작성 여부를 결정한다.
+
+---
+
+# 부록 B: 프리폼 전역 설정 적용 후 재검증 (2026-08-23 23:56)
+
+부록 A의 §A-6에서 제안한 검증 2단계를 실행했다. **§3·§4의 판정이 크게 갱신된다.**
+
+## B-1. 적용한 변경
+
+Stellar 터미널에서 `aospFreeform()`의 `compatibilityValues`
+(`DesktopEnvironment.kt:87`)와 동일한 값을 수동 적용:
+
+```sh
+settings put global enable_freeform_support 1
+settings put global force_resizable_activities 1
+settings put global force_desktop_mode_on_external_displays 1
+```
+
+리포트로 적용 확인:
+```
+[IMPORTANT SETTINGS]
+enable_freeform_support: 1                    (이전 0)
+force_resizable_activities: 1
+force_desktop_mode_on_external_displays: 1    (이전 0)
+```
+
+앱 설정에서 미러링 방식도 `virtual_display` 고정 → **`자동(호환성 우선)`** 으로 변경.
+
+## B-2. 결과 — 데스크톱이 실제로 렌더링됨
+
+부록 A에서 완전한 검은 화면이었던 것이, **One UI Home이 가상 디스플레이에 정상
+렌더링**됐다. 위젯, 구글 검색바, 앱 아이콘, 도크, 페이지 인디케이터까지 전부 표시.
+
+세션 로그 요약:
+```
+50.472  DisplayBackend created request strategy=overlay_settings spec=2208x1768/223
+50.502  display_added_12
+50.588~598  ignore orientation / fixed rotation / rotation lock 적용
+50.613  mirror strategy=virtual_display success=true
+52.605  virtual pointer ready profile=mouse deviceId=21
+```
+
+→ **§4에서 "가장 불확실"로 분류했던 프리폼 관문이 통과됐다.**
+   `samsung_dex` 프로필이 이 전역 설정을 건드리지 않는 것(§A-2)이 부록 A에서
+   화면이 비었던 유일한 원인이었음이 확정된다.
+
+## B-3. 남은 문제 — 입력이 전달되는데 UI가 반응하지 않음
+
+터치는 화면에 반영되지 않으나, **주입 자체는 성공한다.**
+
+```
+23:56:57.879  InputDispatch seq=2   injectInputEvent=accepted accepted=true action=0
+23:56:57.968  InputDispatch seq=3   injectInputEvent=accepted accepted=true action=1
+...
+23:57:08.368  InputDispatch seq=115 injectInputEvent=accepted accepted=true action=1
+```
+
+- 총 121건 중 대다수가 `accepted=true`
+- `InputDispatcher.kt:28`이 `INJECT_WAIT_FOR_RESULT`(mode=1)로 호출하므로,
+  `true`는 **이벤트가 디스플레이 12의 창에 배달되어 처리됨**을 의미한다
+  (AOSP `injectInputEvent`는 이 모드에서 `INPUT_EVENT_INJECTION_SUCCEEDED`일 때만 true)
+- 좌표 매핑도 정상: `mappedX == pointX` (호스트 Surface 2208x1768 == 타깃 2208x1768)
+- ACTION_DOWN(0) → ACTION_UP(1) 쌍이 50~100ms 간격으로 온전히 전달됨
+
+**즉 프레임워크는 "탭이 성공적으로 전달됐다"고 응답하는데 화면은 반응하지 않는다.**
+가장 유력한 해석은 보조 디스플레이의 One UI Home 인스턴스가 렌더링만 하고 입력을
+소비하지 않는 상태라는 것이다. (미확인 — B-5의 검증 필요)
+
+## B-4. 부수 관찰
+
+**① 드래그 구간에서만 집중 거부** — seq 38~64 (약 0.8초)
+```
+23:57:02.614  injectInputEvent=rejected accepted=false action=0
+23:57:02.638  injectInputEvent=rejected accepted=false action=2   (ACTION_MOVE)
+...
+23:57:03.444  injectInputEvent=rejected accepted=false action=1
+23:57:03.556  injectInputEvent=accepted accepted=true             (이후 정상 복귀)
+```
+탭(DOWN/UP)은 통과하는데 연속 MOVE가 포함된 스트림이 통째로 거부되는 패턴.
+
+**② 세 손가락 감지가 진행 중인 터치를 취소**
+```
+23:57:10.181  TouchRouting action=5 pointers=3
+23:57:10.183  InputDispatch  action=3 (ACTION_CANCEL) pointers=2
+```
+`handleExperimentalEdgeGesture()`(`MirrorService.kt:5327`)가 3포인터에서 스트림을
+취소한다. 단일 손가락 탭이 아니면 입력이 유실될 수 있다.
+
+**③ uinput 터치패드 프로파일은 이 기기에서 미지원**
+```
+52.268  W/InputRouting uinput profile=touchpad was not published by InputReader
+52.273  W/InputRouting SOURCE_TOUCHPAD unavailable; falling back to virtual mouse
+```
+부록 A와 동일하게 재현. 마우스 프로파일로는 정상 등록됨.
+
+**④ 매 터치마다 가상 포인터 재연결**
+`phone touch surface claimed input; virtual pointer disconnected` → `touch input activated`
+쌍이 모든 탭마다 반복된다. direct touch 모드에서 `activateTouchInput()`이
+매번 호출되는 구조로 보이며, 기능상 문제는 없으나 오버헤드가 있다.
+
+**⑤ 세션 종료가 이번엔 정상**
+```
+23:57:14.736  PhoneNavigation disabled=false method=disable/3
+23:57:14.801  PhoneRotation restored frozen=true rotation=1
+23:57:14.849  Session finished restored=true
+```
+부록 A-5의 네비게이션 바 복구 실패가 재현되지 않았다. A-5는 **세션 중 폴딩으로
+커버 디스플레이 전환이 일어난 경우에 한정된 문제**임이 뒷받침된다.
+
+## B-5. 갱신된 판정과 다음 검증
+
+| 단계 | §3 원판정 | A 검증 | B 검증 |
+| --- | --- | --- | --- |
+| 오버레이 디스플레이 생성 | 가능성 높음 | ✅ | ✅ |
+| 미러링 | 불확실 | ✅ | ✅ |
+| **디스플레이에 셸/홈 렌더링** | ❌ 불가능 | ❌ | **✅ 프리폼 설정으로 해결** |
+| 입력 주입 (프레임워크 수용) | 미검증 | 미검증 | **✅ accepted=true** |
+| **UI 상호작용** | — | — | **❌ 반응 없음** |
+
+**§3의 "삼성 덱스로는 불가" 결론은 유지된다** — 뜬 것은 DeX 셸이 아니라 One UI Home이다.
+그러나 **§4의 AOSP 프리폼 우회안은 "성공률 낮음~중간"에서 "렌더링까지 확인됨"으로
+격상된다.** 남은 미지수는 상호작용 하나뿐이다.
+
+**다음 검증(빌드 불필요):** Dextop 앱 런처로 일반 앱을 디스플레이 12에 띄우고
+그 앱이 터치에 반응하는지 확인한다 (`MirrorService.launchPackage()` `:420` →
+`ActivityOptions.setLaunchDisplayId`).
+
+- 앱이 반응 → 문제는 보조 디스플레이의 런처 인스턴스에 한정. **실사용 가능**
+  (앱 런처로 앱을 띄워 쓰는 방식). §4 패치를 작성할 근거가 충분해진다.
+- 앱도 무반응 → 입력 경로 자체의 벽. 앱 수준에서 해결 불가.
