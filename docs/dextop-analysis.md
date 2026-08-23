@@ -668,3 +668,131 @@ force_desktop_mode_on_external_displays: 1    (이전 0)
 - 앱이 반응 → 문제는 보조 디스플레이의 런처 인스턴스에 한정. **실사용 가능**
   (앱 런처로 앱을 띄워 쓰는 방식). §4 패치를 작성할 근거가 충분해진다.
 - 앱도 무반응 → 입력 경로 자체의 벽. 앱 수준에서 해결 불가.
+
+---
+
+# 부록 C: WindowManager 미러링으로 실사용 도달 (2026-08-24 00:15)
+
+부록 B에서 "입력은 수용되는데 UI가 반응하지 않는다"고 기록한 것은 **오진이었다.**
+사용자가 세션 종료 후 확인한 바, **탭했던 앱들이 실제로 실행되어 있었다.**
+즉 입력·앱 실행은 모두 성공했고, **미러 화면만 첫 프레임에서 갱신을 멈춘 것**이었다.
+
+## C-1. 원인 — virtual_display 미러의 갱신 스킵
+
+`scheduleMirrorRefresh()` `MirrorService.kt:6918`는 활성 전략이 `virtual_display`이고
+호스트 지오메트리가 그대로면 갱신 요청을 **의도적으로 무시한다**:
+
+```
+50.714  I/DisplayBackend mirror refresh skipped strategy=virtual_display reason=source display changed
+```
+
+근거는 코드 주석(`:6923`)의 전제다 — *"A content-recording VirtualDisplay follows changes
+on its mirrored display without being recreated."* 이 전제가 SM-F926N / One UI 7에서
+성립하지 않는다. `setDisplayIdToMirror`로 만든 기록용 VirtualDisplay가 첫 프레임만
+캡처하고 이후 소스 변화를 따라가지 않는다.
+
+부록 A·B에서 미러링이 "성공"으로 보인 이유도 이것이다. `success=true`는 부착 성공일 뿐
+지속적 갱신을 보장하지 않는다.
+
+## C-2. 해결 — 미러링 방식을 window_manager로 고정
+
+Dextop 설정 → 디스플레이 → 디스플레이 미러링 방식 → **WindowManager**
+
+```
+00:15:12.840  I/DisplayBackend mirror strategy=window_manager success=true
+00:15:13.094  I/DisplayBackend mirror strategy=window_manager success=true
+00:15:13.095  I/DisplayBackend mirror refreshed reason=source display changed   ← 갱신이 실제로 수행됨
+00:16:28.028  I/DisplayBackend mirror strategy=window_manager success=true      ← 노트북 모드 전환에도 재부착
+```
+
+부록 B의 `mirror refresh skipped`가 사라지고 매번 `mirror refreshed`가 찍힌다.
+`WindowManagerMirrorBackend`(`DisplayMirrorBackend.kt:224`)는 `IWindowManager.mirrorDisplay`로
+SurfaceControl 레이어를 직접 reparent하므로 소스 디스플레이를 실시간 추종한다.
+
+**`자동(호환성 우선)` 설정으로는 이 경로에 도달하지 못한다.** 전략 순서가
+`virtual_display → window_manager → surface_control`(`DesktopEnvironment.kt:61`)이고
+virtual_display가 "성공"하므로 폴백이 발생하지 않는다. 명시적 지정이 필요하다.
+
+## C-3. 결과 — 실사용 가능한 데스크톱
+
+프리폼 창(캡션바에 복원·최대화·닫기·더보기 버튼)이 여러 개 떠서 정상 동작한다.
+갤러리 앱에서 사진 탐색, 시계 앱, 날씨 위젯이 모두 반응한다.
+터치 주입은 127건 중 5건만 거부(연속 MOVE 구간 한정), 나머지 전부 accepted.
+
+**최종 판정 — §3 결론의 갱신:**
+
+| 단계 | §3 원판정 | 최종 |
+| --- | --- | --- |
+| 오버레이 디스플레이 생성 | 가능성 높음 | ✅ |
+| 데스크톱 셸 렌더링 | ❌ 불가능 | ✅ (프리폼 전역 설정) |
+| 미러링 실시간 갱신 | 불확실 | ✅ (window_manager 전략) |
+| 터치 주입 / 앱 실행 / 창 조작 | 미검증 | ✅ |
+| **삼성 덱스 셸** | ❌ 불가능 | **❌ 불가능 (유지)** |
+
+**§3의 "삼성 덱스로는 불가"는 그대로 유효하다.** 뜬 것은 DeX가 아니라 AOSP 프리폼
+데스크톱이며, 태스크바·시작 메뉴·덱스 전용 창 관리는 존재하지 않는다. 이는 버그가
+아니라 이 경로의 상한이다.
+
+**그러나 §3이 "루팅 없이 불가능"으로 판정했던 실사용 데스크톱 자체는 달성됐다.**
+상류 저장소가 ❌로 등재한 하드웨어에서, 앱 수정 없이 전역 설정 3개와 미러링 전략
+변경만으로 도달했다.
+
+## C-4. 재현 절차 (SM-F926N / Android 15 / One UI 7.0)
+
+```sh
+# 1) Stellar 터미널 (shell 권한)
+settings put global enable_freeform_support 1
+settings put global force_resizable_activities 1
+settings put global force_desktop_mode_on_external_displays 1
+```
+```
+# 2) Dextop 설정 → 디스플레이 → 디스플레이 미러링 방식 → WindowManager
+# 3) 설정 → 접근성 → 설치된 앱 → Dextop 켜기
+#    (스토어 외 설치 앱은 애플리케이션 → Dextop → ⋮ → 제한된 설정 허용 선행)
+# 4) 세션 시작
+```
+
+되돌리기: 위 두 전역 값을 `0`으로 재설정 (`force_resizable_activities`는 원래 `1`).
+
+## C-5. 잔여 제약과 조작법
+
+| 항목 | 상태 | 비고 |
+| --- | --- | --- |
+| 창 복원(최대화 해제) | 동작 | 캡션바 첫 번째 아이콘. AOSP가 그리므로 Dextop 무관 |
+| 3손가락 오버레이 제스처 | 방향이 화면 방향에 따라 다름 | 가로: 왼쪽 가장자리(120dp) → 오른쪽 / 세로: 위쪽 가장자리(높이 28%, 최대 240dp) → 아래. `handleExperimentalEdgeGesture()` `:5346` |
+| 노트북 모드 | 조건부 | 힌지 55~145°에서만 유지. 180°(완전 펼침)에서 자동 해제 |
+| 폴딩 API | **미지원** | `apiFoldable=null apiHalfOpened=null` — Jetpack WindowManager가 이 기기에서 아무 feature도 반환하지 않아 힌지 센서 단독 의존 |
+| uinput 터치패드 | 미지원 | 마우스 프로파일로 폴백 (부록 A·B와 동일) |
+| SurfaceControl.mirrorDisplay | 미지원 | 삼성이 제거. window_manager로 대체됨 |
+| 드래그 중 주입 거부 | 간헐 | 연속 ACTION_MOVE 구간에서만 발생, 탭은 정상 |
+| 삼성 덱스 셸 | **불가** | One UI 8 이상 전용 |
+
+## C-6. 노트북 모드 세부 (로그 근거)
+
+```
+00:16:27.678  I/LaptopMode overlay manual enable
+00:16:27.698  I/LaptopMode registered external keyboard device
+00:16:27.704  I/InputRouting registered virtual pointer profile=touchpad
+00:16:27.742  live metric change ... from=1768x2208/223 to=1768x1104/223
+00:16:27.801  I/LaptopMode laptop mode enabled host=1768x1104 forcedToPane=true
+00:16:28.028  I/DisplayBackend mirror strategy=window_manager success=true
+00:16:28.513  I/LaptopMode hinge angle=180.0 raw=180.0 timer angle=180.0 manual=false main=false show=false
+```
+
+수동 활성화는 성공했고 화면이 상/하단 패널로 분할됐다(2208 → 1104). 0.8초 뒤
+`evaluateLaptopModeForPosture()` `:2461`의 디바운스 타이머가 힌지 180°를 확인하고
+`show=false`로 해제했다. `isLaptopHingeAngle()` `:2360`이 비활성 상태에서 55~145°만
+노트북 자세로 인정하기 때문이다.
+
+→ **기기를 실제로 반쯤 접은 상태에서만 노트북 모드가 유지된다.**
+
+## C-7. 상류 보고 가치
+
+- 저장소는 이 하드웨어(SCG11 = Fold3, One UI 7)를 ❌로 등재하고 있으나, 1.4.2에서는
+  설정만으로 동작한다. 등재 상태 갱신 대상.
+- `samsung_dex` 프로필이 One UI 8 미만 빌드에서 프리폼 전역 설정을 건드리지 않는 것이
+  실패의 단일 원인 — §4의 `samsung_pre_desktop_windowing` 규칙(maxSdk=34~35 한정)이
+  이를 코드로 해결한다. 이제 실기기 근거를 갖췄다.
+- `scheduleMirrorRefresh()`의 virtual_display 갱신 스킵은 이 기기에서 오작동한다.
+  전략별 "라이브 추종 가능" 여부를 런타임 probe로 판정하거나, Samsung + SDK≤35에서
+  `mirrorStrategies` 기본 순서를 `window_manager` 우선으로 두는 좁은 규칙이 필요하다.
