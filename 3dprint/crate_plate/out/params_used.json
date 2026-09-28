@@ -1,0 +1,39 @@
+{
+  "width": 480.0,
+  "depth": 330.0,
+  "thickness": 4.0,
+  "corner_r": 5.0,
+  "split_x": 240.0,
+  "split_y": 165.0,
+  "dt_neck": 12.0,
+  "dt_head": 18.0,
+  "dt_len": 10.0,
+  "dt_clear": 0.15,
+  "dt_v_pos": [
+    55.0,
+    110.0,
+    220.0,
+    275.0
+  ],
+  "dt_h_pos": [
+    80.0,
+    160.0,
+    320.0,
+    400.0
+  ],
+  "grid_pitch": 20.0,
+  "grid_rib": 2.5,
+  "grid_angle": 45.0,
+  "grid_origin": [
+    240.0,
+    165.0
+  ],
+  "pin_d": 7.0,
+  "pin_h": 5.0,
+  "pin_chamfer": 1.0,
+  "pin_every": 3,
+  "pin_margin": 8.0,
+  "coupon_w": 110.0,
+  "coupon_d": 70.0,
+  "bed": 256.0
+}
