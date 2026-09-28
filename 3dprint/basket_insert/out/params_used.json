@@ -30,5 +30,7 @@
   "front_tab_x": [
     0.25,
     0.75
-  ]
+  ],
+  "release_deg": 20.0,
+  "grip": 3.0
 }

@@ -14,7 +14,8 @@
 - 클립 = 벽에 U자 슬릿을 내서 만든 탄성 탭 + 바깥면 톱니(래칫)
 - 위에서 눌러 넣으면 톱니가 바스켓 테두리 철사(지름 3) 아래로 걸림
 - 톱니를 3mm 간격 여러 개로 둬서 테두리 높이(30~40)가 달라도 가장 가까운 톱니가 걸림
-- 뺄 때: 칸 안쪽에서 탭을 손가락으로 밀면서 들어 올림
+- 톱니 윗면 20도 경사: 흔들림에는 버티고, 손으로 세게 들어 올리면 탭이 휘면서 빠짐
+- 잘 안 빠지면 탭 윗끝 안쪽의 손잡이 턱을 칸 안쪽으로 당기면서 들어 올림
 
 출력 방향: 바닥이 베드에 닿는 그대로 -> 서포트 불필요 (톱니 아랫면 45도)
 
@@ -76,6 +77,8 @@ DEFAULTS = dict(
     slit=1.0,              # 탭 주위 슬릿 폭
     tab_root=10.0,         # 탭 뿌리 높이 (이 아래는 벽과 붙어 있음)
     front_tab_x=[0.25, 0.75],   # 앞벽 탭 위치 (길이 비율)
+    release_deg=20.0,      # 톱니 윗면 경사 (0 = 수평: 절대 안 빠짐 / 20 = 세게 들면 빠짐)
+    grip=3.0,              # 탭 윗끝 안쪽 손잡이 턱 돌출 (분리할 때 당기는 곳)
 )
 
 
@@ -160,10 +163,16 @@ def tab_features(p):
     teeth = None
     to = p["tooth_out"]
     for zt in tops:
-        poly = [(-0.6, zt - to - 0.01), (0.0, zt - to), (to, zt), (-0.6, zt)]
+        rise = to * math.tan(math.radians(p["release_deg"]))
+        poly = [(-0.6, zt - to - 0.01), (0.0, zt - to), (to, zt), (0.0, zt + rise), (-0.6, zt + rise)]
         cs = m3d.CrossSection([poly])
         solid = cs.extrude(tw).translate((0, 0, -half))
         teeth = solid if teeth is None else teeth + solid
+    # 분리용 손잡이 턱: 탭 윗끝 안쪽면, 아랫면 45도 (칸 안쪽에서 손가락으로 당김)
+    g = p["grip"]
+    grip = m3d.CrossSection([[(-w + 0.5, z_top - g - 0.5), (-w + 0.5, z_top),
+                              (-w - g, z_top), (-w - g, z_top - 0.5)]])
+    teeth += grip.extrude(tw).translate((0, 0, -half))
     return cut, teeth, z_top
 
 
@@ -301,7 +310,12 @@ def draw(p, g, spacers, out_png, out_pdf):
     ax3.add_patch(Rectangle((-w, z_top), w, p["slit"], fc="white"))
     to = p["tooth_out"]
     for zt in tops:
-        ax3.add_patch(MPoly([(0, zt - to), (to, zt), (0, zt)], fc=WALL))
+        rise = to * math.tan(math.radians(p["release_deg"]))
+        ax3.add_patch(MPoly([(0, zt - to), (to, zt), (0, zt + rise)], fc=WALL))
+    gp = p["grip"]
+    ax3.add_patch(MPoly([(-w, z_top - gp - 0.5), (-w, z_top), (-w - gp, z_top), (-w - gp, z_top - 0.5)],
+                        fc=WALL))
+    ax3.text(-w - gp - 0.5, z_top - 1, "손잡이 턱", ha="right", fontsize=9)
     r = p["wire_d"] / 2
     zc = p["rim_min"] - r
     ax3.add_patch(Circle((p["fit_clear"] + r, zc), r, fc="#8b5a2b"))
@@ -327,7 +341,7 @@ def draw(p, g, spacers, out_png, out_pdf):
         rows.append(f"스페이서 {k}: {v[0]:.0f} x {v[1]:.1f} x {v[2]:.0f}")
     ax4.text(0, 1, "\n".join(rows), fontsize=11, va="top", linespacing=1.7)
     notes = ("장착: 위에서 곧게 눌러 넣음 -> 톱니가 테두리 철사 아래로 딸깍\n"
-             "분리: 칸 안쪽에서 탭을 바깥 반대로(안쪽으로) 밀면서 들어 올림\n"
+             "분리: 세게 들어 올리면 빠짐 (톱니 윗면 20도) · 뻑뻑하면 손잡이 턱을 안쪽으로 당기며\n"
              "먼저 clip_test.stl 로 테두리에 걸리는지 확인\n"
              "출력: 바닥이 베드, 서포트 없음 · PETG 권장 (PLA 는 탭 피로 파손/여름 변형)\n"
              "0.2mm 레이어 · 벽 3 · 인필 15~20%")
